@@ -1,25 +1,33 @@
 {
   "expo": {
-    "name": "app",
-    "slug": "app",
-    "version": "1.0.0",
+    "name": "Iron Kata",
+    "slug": "iron-kata",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
+    "scheme": "ironkata",
+    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
     "android": {
+      "package": "com.ironkata.app",
+      "versionCode": 3,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundColor": "#050708",
+        "foregroundImage": "./assets/android-icon-foreground.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": true
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-sqlite",
+      "expo-video",
+      "expo-sharing",
+      "expo-image"
+    ]
   }
 }

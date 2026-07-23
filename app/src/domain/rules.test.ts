@@ -1,0 +1,49 @@
+import { describe, expect, it } from 'vitest';
+
+import { estimateOneRepMax, isNewRecord, nextRoutine } from './rules';
+import type { Routine, WorkoutSession } from '../types';
+
+const routine = (id: string, orderIndex: number, isRest = false): Routine => ({
+  id, name: id, orderIndex, isRest, active: true,
+  muscles: isRest ? ['Descanso'] : ['Espalda'], exercises: [],
+});
+const session = (routineId: string, isQuick = false): WorkoutSession => ({
+  id: `s-${routineId}`, routineId, routineName: routineId,
+  startedAt: '2026-07-20T10:00:00.000Z', completedAt: '2026-07-20T11:00:00.000Z',
+  status: 'completed', isQuick, sets: [],
+});
+
+describe('secuencia de entrenamiento', () => {
+  const routines = [routine('espalda', 0), routine('pierna', 1), routine('descanso', 2, true)];
+
+  it('empieza por el primer bloque sin historial', () => {
+    expect(nextRoutine(routines, [])?.id).toBe('espalda');
+  });
+
+  it('continúa desde la última sesión completada aunque pase otro día', () => {
+    expect(nextRoutine(routines, [session('espalda')])?.id).toBe('pierna');
+  });
+
+  it('incluye el descanso como parte real de la secuencia', () => {
+    expect(nextRoutine(routines, [session('pierna')])?.id).toBe('descanso');
+  });
+
+  it('vuelve al inicio después de completar el descanso', () => {
+    expect(nextRoutine(routines, [session('descanso')])?.id).toBe('espalda');
+  });
+
+  it('un entrenamiento rápido no altera la secuencia principal', () => {
+    expect(nextRoutine(routines, [session('pierna', true), session('espalda')])?.id).toBe('pierna');
+  });
+});
+
+describe('récords de fuerza', () => {
+  it('calcula 1RM estimado con Epley', () => {
+    expect(estimateOneRepMax(60, 10)).toBeCloseTo(80, 5);
+  });
+
+  it('solo celebra cuando supera el mejor valor', () => {
+    expect(isNewRecord(80.1, 80)).toBe(true);
+    expect(isNewRecord(80, 80)).toBe(false);
+  });
+});
