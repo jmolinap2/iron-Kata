@@ -1,0 +1,39 @@
+# Android / Gradle
+.gradle/
+build/
+**/build/
+local.properties
+*.iml
+.externalNativeBuild/
+.cxx/
+
+# Android Studio / IntelliJ
+.idea/
+*.ipr
+*.iws
+
+# Signing keys and generated packages
+*.jks
+*.keystore
+*.apk
+*.aab
+
+# OS and editor artifacts
+.DS_Store
+Thumbs.db
+.vscode/
+node_modules/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec.lock
+
+# Local database exports and logs
+*.db
+*.db-journal
+*.log
+iron-kata-*.png
+
+# Prototipos heredados descartados (no forman parte del producto vigente)
+/mobile/
+/legacy-canvas-demo/
