@@ -1,6 +1,18 @@
 # Iron Kata
 
-Aplicación Android offline enfocada en responder una sola pregunta al abrirla: **¿qué me toca entrenar hoy?** La implementación vigente está en [`app/`](app/). `mobile/` y `legacy-canvas-demo/` son prototipos heredados descartados y no forman parte del APK entregado.
+![Platform](https://img.shields.io/badge/platform-Android-3DDC84?logo=android&logoColor=white)
+![Expo SDK](https://img.shields.io/badge/Expo-57-000020?logo=expo&logoColor=white)
+![React Native](https://img.shields.io/badge/React%20Native-0.86-61DAFB?logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?logo=typescript&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-brightgreen)
+
+Aplicación Android offline enfocada en responder una sola pregunta al abrirla: **¿qué me toca entrenar hoy?**
+
+<p align="center">
+  <img src="img/61ca7a6a-ccb2-46a3-bb93-abbc6eddad69.png" alt="Pantallas de Iron Kata: inicio, rutina semanal, ejecución de series y resumen" width="100%" />
+</p>
+
+Toda la implementación vive en [`app/`](app/): una app 100% offline, sin cuenta ni servidor.
 
 ## Producto implementado
 
@@ -41,18 +53,15 @@ pnpm build:apk
 
 El SDK Android debe estar disponible mediante `ANDROID_HOME` o `app/android/local.properties`. El APK de Gradle se genera en `app/android/app/build/outputs/apk/release/app-release.apk`.
 
-## APK entregado
+## APK
 
-Instala únicamente [`Iron-Kata-OFICIAL-v1.0.4.apk`](Iron-Kata-OFICIAL-v1.0.4.apk). Es la única APK entregable del repositorio.
+El repositorio distribuye únicamente el código fuente: el APK release (~115 MB) no se versiona aquí, se genera localmente con `pnpm build:apk`.
 
 - Paquete Android: `com.ironkata.app`
-- Versión: `1.0.4` (`versionCode` 5)
-- SHA-256: `39D05CBF8783380724FEE7EA4524AEEFCF32300E16AE44A185E6C21786965C62`
+- Versión vigente: `1.0.4` (`versionCode` 5)
 - Android mínimo: 7.0 (API 24)
 
-No instalar APKs bajo `mobile/`, `legacy-canvas-demo/` ni variantes `app-debug.apk`: son prototipos descartados y pueden aparecer con el mismo nombre visual de la aplicación.
-
-Para desplegar por depuración inalámbrica usa `tools/deploy.sh`. El script compila únicamente `app/`, comprueba que el paquete sea `com.ironkata.app` y luego instala/copia la APK oficial.
+Para desplegar por depuración inalámbrica usa `tools/deploy.sh`. El script compila únicamente `app/`, comprueba que el paquete sea `com.ironkata.app` y luego instala/copia la APK generada.
 
 ## Transferencia MTP
 
