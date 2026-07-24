@@ -8,10 +8,12 @@ import { ActionButton, AppScrollView, Card, Screen, SectionTitle } from '../comp
 import { ExerciseMedia } from '../components/ExerciseMedia';
 import { useAppStore } from '../store/useAppStore';
 import type { MuscleGroup, PlannedExercise, Routine } from '../types';
-import { colors, radius, spacing } from '../theme';
+import { createThemedStyleSheet, radius, spacing, useTheme } from '../theme';
 
 export function RoutineEditorScreen() {
   const navigation = useNavigation();
+  const colors = useTheme();
+  const styles = useStyles();
   const route = useRoute<RouteProp<RootStackParamList, 'RoutineEditor'>>();
   const routines = useAppStore(state => state.routines);
   const saveRoutine = useAppStore(state => state.saveRoutine);
@@ -64,12 +66,12 @@ export function RoutineEditorScreen() {
   </AppScrollView></Screen>;
 }
 
-function MiniCounter({ label, value, min, max, step, onChange }: { label: string; value: number; min: number; max: number; step: number; onChange: (value: number) => void }) { return <View style={styles.mini}><Text style={styles.miniLabel}>{label}</Text><View style={styles.miniControls}><Pressable onPress={() => onChange(Math.max(min, value - step))}><Ionicons name="remove-circle-outline" size={19} color={colors.textMuted}/></Pressable><Text style={styles.miniValue}>{value}</Text><Pressable onPress={() => onChange(Math.min(max, value + step))}><Ionicons name="add-circle-outline" size={19} color={colors.primary}/></Pressable></View></View>; }
+function MiniCounter({ label, value, min, max, step, onChange }: { label: string; value: number; min: number; max: number; step: number; onChange: (value: number) => void }) { const colors = useTheme(); const styles = useStyles(); return <View style={styles.mini}><Text style={styles.miniLabel}>{label}</Text><View style={styles.miniControls}><Pressable onPress={() => onChange(Math.max(min, value - step))}><Ionicons name="remove-circle-outline" size={19} color={colors.textMuted}/></Pressable><Text style={styles.miniValue}>{value}</Text><Pressable onPress={() => onChange(Math.min(max, value + step))}><Ionicons name="add-circle-outline" size={19} color={colors.primary}/></Pressable></View></View>; }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyleSheet(colors => ({
   topbar: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 86 }, back: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center' }, title: { color: colors.text, fontSize: 29, fontWeight: '900' }, subtitle: { color: colors.textMuted, marginTop: 3 },
   label: { color: colors.textMuted, fontSize: 12, marginBottom: spacing.sm }, input: { minHeight: 50, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, color: colors.text, backgroundColor: colors.backgroundSoft, paddingHorizontal: spacing.md, fontSize: 17, fontWeight: '700' }, restNotice: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg, alignItems: 'center' }, restText: { color: colors.textMuted, flex: 1 },
   exerciseTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm }, position: { width: 32, height: 32, borderRadius: 16, borderWidth: 1, borderColor: colors.primary, alignItems: 'center', justifyContent: 'center' }, positionText: { color: colors.primary, fontWeight: '900' }, thumb: { width: 66, height: 48 }, exerciseName: { color: colors.text, fontWeight: '800' }, muscle: { color: colors.textMuted, fontSize: 11, marginTop: 2 }, actions: { flexDirection: 'row', gap: spacing.md },
   configRow: { flexDirection: 'row', gap: spacing.xs, marginTop: spacing.md }, mini: { flex: 1, backgroundColor: colors.backgroundSoft, borderRadius: radius.sm, padding: spacing.sm, alignItems: 'center' }, miniLabel: { color: colors.textDim, fontSize: 9 }, miniControls: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 6 }, miniValue: { color: colors.text, minWidth: 23, textAlign: 'center', fontWeight: '800', fontSize: 12 },
   addRow: { minHeight: 62, flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }, addThumb: { width: 58, height: 42 }, addName: { color: colors.text, fontWeight: '700' },
-});
+}));

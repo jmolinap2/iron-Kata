@@ -7,13 +7,15 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { ActionButton, AppScrollView, Card, Screen } from '../components/ui';
 import { useAppStore } from '../store/useAppStore';
-import { colors, spacing } from '../theme';
+import { createThemedStyleSheet, spacing, useTheme } from '../theme';
 import { formatWeight } from '../utils/format';
 
 type Navigation = NativeStackNavigationProp<RootStackParamList>;
 
 export function WorkoutSummaryScreen() {
   const navigation = useNavigation<Navigation>();
+  const colors = useTheme();
+  const styles = useStyles();
   const summary = useAppStore(state => state.lastSummary);
   const clearSummary = useAppStore(state => state.clearSummary);
 
@@ -62,22 +64,24 @@ export function WorkoutSummaryScreen() {
 }
 
 function SummaryMetric({ icon, value, label }: { icon: keyof typeof Ionicons.glyphMap; value: string; label: string }) {
+  const colors = useTheme();
+  const styles = useStyles();
   return <View style={styles.metric}><Ionicons name={icon} size={25} color={colors.primary} /><Text style={styles.metricValue}>{value}</Text><Text style={styles.metricLabel}>{label}</Text></View>;
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyleSheet(colors => ({
   content: { alignItems: 'stretch', paddingTop: spacing.xl },
   celebration: { alignSelf: 'center', width: 150, height: 150, alignItems: 'center', justifyContent: 'center' },
   lottie: { width: 150, height: 150 },
-  checkOverlay: { position: 'absolute', width: 78, height: 78, borderRadius: 39, alignItems: 'center', justifyContent: 'center' },
+  checkOverlay: { position: 'absolute', width: 78, height: 78, borderRadius: 39, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.success },
   title: { color: colors.text, fontSize: 28, fontWeight: '900', textAlign: 'center' },
   subtitle: { color: colors.primary, fontSize: 17, fontWeight: '700', textAlign: 'center', marginTop: 5 },
   metrics: { flexDirection: 'row', paddingVertical: spacing.xl },
   metric: { flex: 1, alignItems: 'center', gap: 5 }, metricValue: { color: colors.text, fontSize: 21, fontWeight: '900' }, metricLabel: { color: colors.textMuted, fontSize: 11 },
-  records: { backgroundColor: '#19180E', borderColor: '#51420B' },
+  records: { backgroundColor: colors.warningSurface, borderColor: colors.warningBorder },
   recordHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.md }, recordTitle: { color: colors.warning, fontSize: 17, fontWeight: '800' },
-  recordRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#51420B' },
+  recordRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.warningBorder },
   recordName: { color: colors.text, fontWeight: '800' }, recordMeta: { color: colors.textMuted, fontSize: 12, marginTop: 3 },
   e1rm: { color: colors.warning, fontSize: 17, fontWeight: '900', textAlign: 'right' }, e1rmLabel: { color: colors.textDim, fontSize: 10 },
   nextHint: { color: colors.textMuted, textAlign: 'center', lineHeight: 20, paddingHorizontal: spacing.xl },
-});
+}));

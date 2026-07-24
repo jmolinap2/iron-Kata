@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -7,12 +7,14 @@ import type { RootStackParamList } from '../navigation/types';
 import { ActionButton, AppScrollView, Card, Header, Screen, SectionTitle } from '../components/ui';
 import { ExerciseMedia } from '../components/ExerciseMedia';
 import { useAppStore } from '../store/useAppStore';
-import { colors, spacing } from '../theme';
+import { createThemedStyleSheet, spacing, useTheme } from '../theme';
 
 type Navigation = NativeStackNavigationProp<RootStackParamList>;
 
 export function TrainingScreen() {
   const navigation = useNavigation<Navigation>();
+  const colors = useTheme();
+  const styles = useStyles();
   const routines = useAppStore(state => state.routines);
   const active = useAppStore(state => state.activeWorkout);
 
@@ -46,7 +48,7 @@ export function TrainingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyleSheet(colors => ({
   quickRow: { flexDirection: 'row' },
   routineCard: { padding: spacing.md },
   routineTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
@@ -59,4 +61,4 @@ const styles = StyleSheet.create({
   meta: { color: colors.textMuted, fontSize: 12, marginTop: 4 },
   editLink: { alignSelf: 'flex-end', flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: spacing.md, paddingHorizontal: spacing.sm },
   editText: { color: colors.primary, fontWeight: '700', fontSize: 12 },
-});
+}));

@@ -1,51 +1,113 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../navigation/types';
 import { ActionButton, AppScrollView, Card, Header, Screen, SectionTitle } from '../components/ui';
 import { useAppStore } from '../store/useAppStore';
-import type { Profile } from '../types';
-import { colors, radius, spacing } from '../theme';
+import type { AppTheme, Profile, ProfileGoal } from '../types';
+import { createThemedStyleSheet, getThemePalette, radius, spacing, themeOptions, useTheme, useThemePreferences } from '../theme';
 
 type Navigation = NativeStackNavigationProp<RootStackParamList>;
 const levels: Profile['experience'][] = ['Principiante', 'Intermedio', 'Avanzado'];
+const goals: ProfileGoal[] = ['Ganar fuerza y masa muscular', 'Perder grasa', 'Mantenimiento', 'Resistencia'];
 
 export function ProfileScreen() {
   const navigation = useNavigation<Navigation>();
+  const colors = useTheme();
+  const styles = useStyles();
+  const { setPreviewTheme, clearPreviewTheme } = useThemePreferences();
   const stored = useAppStore(state => state.profile);
   const updateProfile = useAppStore(state => state.updateProfile);
   const [profile, setProfile] = useState(stored);
 
-  const save = async () => { await updateProfile(profile); Alert.alert('Perfil guardado', 'Tus preferencias se aplicaron correctamente.'); };
+  useFocusEffect(useCallback(() => {
+    setProfile(stored);
+    return clearPreviewTheme;
+  }, [clearPreviewTheme, stored]));
+
+  const save = async () => { await updateProfile(profile); clearPreviewTheme(); Alert.alert('Perfil guardado', 'Tus preferencias se aplicaron correctamente.'); };
   const cycleLevel = () => setProfile(value => ({ ...value, experience: levels[(levels.indexOf(value.experience) + 1) % levels.length] }));
+  const cycleGoal = () => setProfile(value => ({ ...value, goal: goals[(goals.indexOf(value.goal) + 1) % goals.length] }));
+  const selectTheme = (theme: AppTheme) => { setProfile(value => ({ ...value, theme })); setPreviewTheme(theme); };
 
   return (
     <Screen><AppScrollView>
-      <Header title="Perfil" subtitle="Solo las preferencias que cambian tu entrenamiento." />
+      <Header title="Perfil" subtitle="Tu entrenamiento y la apariencia de Iron Kata." />
       <Card>
         <SectionTitle title="Datos básicos" />
         <Field label="Nombre"><TextInput style={styles.input} value={profile.name} onChangeText={name => setProfile(value => ({ ...value, name }))} /></Field>
-        <Field label="Objetivo principal"><TextInput style={styles.input} value={profile.goal} onChangeText={goal => setProfile(value => ({ ...value, goal }))} /></Field>
+        <Field label="Objetivo principal"><Pressable style={styles.select} onPress={cycleGoal}><Text style={styles.selectText}>{profile.goal}</Text><Ionicons name="chevron-down" color={colors.textMuted} size={18} /></Pressable></Field>
         <Field label="Nivel de experiencia"><Pressable style={styles.select} onPress={cycleLevel}><Text style={styles.selectText}>{profile.experience}</Text><Ionicons name="chevron-down" color={colors.textMuted} size={18} /></Pressable></Field>
       </Card>
       <Card><SectionTitle title="Disponibilidad" /><Counter label="Días disponibles" value={profile.availableDays} suffix="días" min={1} max={7} step={1} onChange={availableDays => setProfile(value => ({ ...value, availableDays }))} /><Counter label="Duración aproximada" value={profile.durationMinutes} suffix="min" min={30} max={120} step={5} onChange={durationMinutes => setProfile(value => ({ ...value, durationMinutes }))} /></Card>
-      <Card><SectionTitle title="Preferencias" /><Pressable style={styles.preference} onPress={() => setProfile(value => ({ ...value, unit: value.unit === 'kg' ? 'lb' : 'kg' }))}><View><Text style={styles.preferenceLabel}>Unidad de peso</Text><Text style={styles.preferenceHint}>Se usa en todas las series y récords</Text></View><Text style={styles.preferenceValue}>{profile.unit}</Text></Pressable><View style={styles.preference}><View><Text style={styles.preferenceLabel}>Tema visual</Text><Text style={styles.preferenceHint}>Tema inicial de alto contraste</Text></View><Text style={styles.preferenceValue}>Oscuro</Text></View></Card>
+      <Card><SectionTitle title="Preferencias" /><Pressable style={styles.preference} onPress={() => setProfile(value => ({ ...value, unit: value.unit === 'kg' ? 'lb' : 'kg' }))}><View><Text style={styles.preferenceLabel}>Unidad de peso</Text><Text style={styles.preferenceHint}>Se usa en todas las series y récords</Text></View><Text style={styles.preferenceValue}>{profile.unit}</Text></Pressable></Card>
+      <Card>
+        <SectionTitle title="Personalización" />
+        <Text style={styles.personalizationIntro}>La vista previa se aplica al instante a botones, navegación, gráficas, bordes activos y el bloque principal. Guarda para conservarla.</Text>
+        <View style={styles.themeList}>
+          {themeOptions.map(option => (
+            <ThemeChoice
+              key={option.name}
+              theme={option.name}
+              label={option.label}
+              description={option.description}
+              selected={profile.theme === option.name}
+              onPress={() => selectTheme(option.name)}
+            />
+          ))}
+        </View>
+      </Card>
       <ActionButton label="Guardar perfil" icon="save-outline" onPress={() => { void save(); }} />
       <Card><SectionTitle title="Datos locales" /><Pressable style={styles.link} onPress={() => navigation.navigate('Backup')}><View style={styles.linkIcon}><Ionicons name="archive-outline" size={23} color={colors.primary} /></View><View style={{ flex: 1 }}><Text style={styles.linkTitle}>Respaldos</Text><Text style={styles.linkBody}>Exportar o restaurar todos tus datos</Text></View><Ionicons name="chevron-forward" color={colors.textDim} size={21} /></Pressable></Card>
     </AppScrollView></Screen>
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) { return <View style={styles.field}><Text style={styles.fieldLabel}>{label}</Text>{children}</View>; }
-function Counter({ label, value, suffix, min, max, step, onChange }: { label: string; value: number; suffix: string; min: number; max: number; step: number; onChange: (value: number) => void }) { return <View style={styles.counter}><Text style={styles.preferenceLabel}>{label}</Text><View style={styles.counterControls}><Pressable style={styles.round} onPress={() => onChange(Math.max(min, value - step))}><Ionicons name="remove" size={20} color={colors.textMuted} /></Pressable><Text style={styles.counterValue}>{value} {suffix}</Text><Pressable style={styles.round} onPress={() => onChange(Math.min(max, value + step))}><Ionicons name="add" size={20} color={colors.primary} /></Pressable></View></View>; }
+function Field({ label, children }: { label: string; children: React.ReactNode }) { const styles = useStyles(); return <View style={styles.field}><Text style={styles.fieldLabel}>{label}</Text>{children}</View>; }
+function Counter({ label, value, suffix, min, max, step, onChange }: { label: string; value: number; suffix: string; min: number; max: number; step: number; onChange: (value: number) => void }) { const colors = useTheme(); const styles = useStyles(); return <View style={styles.counter}><Text style={styles.preferenceLabel}>{label}</Text><View style={styles.counterControls}><Pressable style={styles.round} onPress={() => onChange(Math.max(min, value - step))}><Ionicons name="remove" size={20} color={colors.textMuted} /></Pressable><Text style={styles.counterValue}>{value} {suffix}</Text><Pressable style={styles.round} onPress={() => onChange(Math.min(max, value + step))}><Ionicons name="add" size={20} color={colors.primary} /></Pressable></View></View>; }
 
-const styles = StyleSheet.create({
+function ThemeChoice({ theme, label, description, selected, onPress }: { theme: AppTheme; label: string; description: string; selected: boolean; onPress: () => void }) {
+  const colors = useTheme();
+  const styles = useStyles();
+  const palette = getThemePalette(theme);
+  return (
+    <Pressable
+      accessibilityRole="radio"
+      accessibilityState={{ checked: selected }}
+      onPress={onPress}
+      style={[
+        styles.themeChoice,
+        selected && { borderColor: palette.primary, backgroundColor: palette.primarySoftBackground },
+      ]}
+    >
+      <View style={[styles.themePreview, { backgroundColor: palette.primaryDark, borderColor: palette.primaryBorder }]}>
+        <View style={[styles.themeDotLarge, { backgroundColor: palette.primary }]} />
+        <View style={[styles.themeDotSmall, { backgroundColor: palette.gradientStart }]} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.themeLabel}>{label}</Text>
+        <Text style={styles.themeDescription}>{description}</Text>
+      </View>
+      <Ionicons name={selected ? 'checkmark-circle' : 'ellipse-outline'} color={selected ? palette.primary : colors.textDim} size={24} />
+    </Pressable>
+  );
+}
+
+const useStyles = createThemedStyleSheet(colors => ({
   field: { marginTop: spacing.lg }, fieldLabel: { color: colors.textMuted, fontSize: 12, marginBottom: spacing.sm }, input: { minHeight: 50, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.backgroundSoft, color: colors.text, paddingHorizontal: spacing.md, fontSize: 15 },
   select: { minHeight: 50, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.backgroundSoft, paddingHorizontal: spacing.md }, selectText: { color: colors.text, fontWeight: '700' },
   counter: { minHeight: 74, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }, counterControls: { flexDirection: 'row', alignItems: 'center', gap: spacing.md }, round: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }, counterValue: { color: colors.text, minWidth: 72, textAlign: 'center', fontWeight: '800' },
   preference: { minHeight: 66, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }, preferenceLabel: { color: colors.text, fontWeight: '700' }, preferenceHint: { color: colors.textMuted, fontSize: 11, marginTop: 3 }, preferenceValue: { color: colors.primary, textTransform: 'uppercase', fontWeight: '900' },
+  personalizationIntro: { color: colors.textMuted, fontSize: 12, lineHeight: 18, marginTop: spacing.sm },
+  themeList: { gap: spacing.sm, marginTop: spacing.lg },
+  themeChoice: { minHeight: 76, flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.backgroundSoft },
+  themePreview: { width: 48, height: 48, borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  themeDotLarge: { width: 21, height: 21, borderRadius: 11 },
+  themeDotSmall: { position: 'absolute', width: 10, height: 10, borderRadius: 5, right: 8, top: 8 },
+  themeLabel: { color: colors.text, fontSize: 14, fontWeight: '800' },
+  themeDescription: { color: colors.textMuted, fontSize: 10, lineHeight: 14, marginTop: 3 },
   link: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.lg }, linkIcon: { width: 48, height: 48, borderRadius: 15, backgroundColor: colors.primaryDark, alignItems: 'center', justifyContent: 'center' }, linkTitle: { color: colors.text, fontWeight: '800' }, linkBody: { color: colors.textMuted, fontSize: 11, marginTop: 3 },
-});
+}));

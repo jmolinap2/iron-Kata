@@ -5,13 +5,15 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { colors, radius, shadow, spacing, typography } from '../theme';
+import { createThemedStyleSheet, radius, shadow, spacing, typography, useTheme } from '../theme';
 
 export function Screen({ children, style }: PropsWithChildren<{ style?: StyleProp<ViewStyle> }>) {
+  const styles = useStyles();
   return <SafeAreaView edges={['top']} style={[styles.screen, style]}>{children}</SafeAreaView>;
 }
 
 export function AppScrollView({ children, contentStyle }: PropsWithChildren<{ contentStyle?: StyleProp<ViewStyle> }>) {
+  const styles = useStyles();
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scrollContent, contentStyle]}>
       {children}
@@ -20,6 +22,7 @@ export function AppScrollView({ children, contentStyle }: PropsWithChildren<{ co
 }
 
 export function Card({ children, style, delay = 0 }: PropsWithChildren<{ style?: StyleProp<ViewStyle>; delay?: number }>) {
+  const styles = useStyles();
   return (
     <Animated.View entering={FadeInDown.delay(delay).duration(360)} style={[styles.card, style]}>
       {children}
@@ -38,6 +41,8 @@ type ButtonProps = {
 };
 
 export function ActionButton({ label, onPress, icon = 'play', disabled, loading, variant = 'primary', style }: ButtonProps) {
+  const colors = useTheme();
+  const styles = useStyles();
   const pressed = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: pressed.value }] }));
   const content = (
@@ -64,7 +69,7 @@ export function ActionButton({ label, onPress, icon = 'play', disabled, loading,
         style={({ pressed: isPressed }) => [styles.button, variant !== 'primary' && styles.buttonOutline, variant === 'muted' && styles.buttonMuted, (disabled || isPressed) && styles.buttonDisabled]}
       >
         {variant === 'primary' ? (
-          <LinearGradient colors={['#B8FF18', '#8CE600']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+          <LinearGradient colors={[colors.gradientStart, colors.gradientEnd]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
         ) : null}
         {content}
       </Pressable>
@@ -73,6 +78,7 @@ export function ActionButton({ label, onPress, icon = 'play', disabled, loading,
 }
 
 export function Header({ title, subtitle, right }: { title: string; subtitle?: string; right?: ReactNode }) {
+  const styles = useStyles();
   return (
     <View style={styles.header}>
       <View style={{ flex: 1 }}>
@@ -85,6 +91,7 @@ export function Header({ title, subtitle, right }: { title: string; subtitle?: s
 }
 
 export function SectionTitle({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
+  const styles = useStyles();
   return (
     <View style={styles.sectionTitleRow}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -95,12 +102,16 @@ export function SectionTitle({ title, action, onAction }: { title: string; actio
   );
 }
 
-export function ProgressBar({ progress, color = colors.primary }: { progress: number; color?: string }) {
+export function ProgressBar({ progress, color }: { progress: number; color?: string }) {
+  const colors = useTheme();
+  const styles = useStyles();
   const clamped = Math.max(0, Math.min(1, progress));
-  return <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${clamped * 100}%`, backgroundColor: color }]} /></View>;
+  return <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${clamped * 100}%`, backgroundColor: color ?? colors.primary }]} /></View>;
 }
 
 export function EmptyState({ icon, title, body }: { icon: keyof typeof Ionicons.glyphMap; title: string; body: string }) {
+  const colors = useTheme();
+  const styles = useStyles();
   return (
     <View style={styles.empty}>
       <Ionicons name={icon} size={30} color={colors.textDim} />
@@ -110,13 +121,15 @@ export function EmptyState({ icon, title, body }: { icon: keyof typeof Ionicons.
   );
 }
 
-export function Pill({ icon, label, color = colors.primary }: { icon: keyof typeof Ionicons.glyphMap; label: string; color?: string }) {
+export function Pill({ icon, label, color }: { icon: keyof typeof Ionicons.glyphMap; label: string; color?: string }) {
+  const colors = useTheme();
+  const styles = useStyles();
   return (
-    <View style={styles.pill}><Ionicons name={icon} color={color} size={17} /><Text style={styles.pillText}>{label}</Text></View>
+    <View style={styles.pill}><Ionicons name={icon} color={color ?? colors.primary} size={17} /><Text style={styles.pillText}>{label}</Text></View>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyleSheet(colors => ({
   screen: { flex: 1, backgroundColor: colors.background },
   scrollContent: { paddingHorizontal: spacing.lg, paddingBottom: 118, gap: spacing.lg },
   card: { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, padding: spacing.lg, overflow: 'hidden', ...shadow },
@@ -142,4 +155,4 @@ const styles = StyleSheet.create({
   emptyBody: { color: colors.textMuted, fontSize: typography.small, textAlign: 'center', marginTop: spacing.xs, lineHeight: 19 },
   pill: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center', borderColor: colors.border, borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   pillText: { color: colors.text, fontSize: typography.small, fontWeight: '700' },
-});
+}));

@@ -4,10 +4,12 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { AppScrollView, Card, EmptyState, Header, ProgressBar, Screen, SectionTitle } from '../components/ui';
 import { useAppStore } from '../store/useAppStore';
-import { colors, radius, spacing } from '../theme';
+import { createThemedStyleSheet, radius, spacing, useTheme } from '../theme';
 import { isSameDay } from '../utils/format';
 
 export function NutritionScreen() {
+  const colors = useTheme();
+  const styles = useStyles();
   const profile = useAppStore(state => state.profile);
   const foods = useAppStore(state => state.foods);
   const addFood = useAppStore(state => state.addFood);
@@ -41,11 +43,11 @@ export function NutritionScreen() {
   );
 }
 
-function Macro({ icon, color, value, suffix, progress }: { icon: keyof typeof Ionicons.glyphMap; color: string; value: string; suffix: string; progress: number }) { return <View style={styles.macro}><View style={styles.macroTop}><Ionicons name={icon} size={24} color={color} /><Text style={styles.macroValue}>{value}</Text><Text style={styles.macroSuffix}>{suffix}</Text></View><ProgressBar progress={progress} color={color} /></View>; }
+function Macro({ icon, color, value, suffix, progress }: { icon: keyof typeof Ionicons.glyphMap; color: string; value: string; suffix: string; progress: number }) { const styles = useStyles(); return <View style={styles.macro}><View style={styles.macroTop}><Ionicons name={icon} size={24} color={color} /><Text style={styles.macroValue}>{value}</Text><Text style={styles.macroSuffix}>{suffix}</Text></View><ProgressBar progress={progress} color={color} /></View>; }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyleSheet(colors => ({
   summary: { gap: spacing.lg }, macro: { gap: spacing.md }, macroTop: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm }, macroValue: { color: colors.text, fontSize: 28, fontWeight: '900' }, macroSuffix: { color: colors.textMuted, fontSize: 12 }, macroDivider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
   input: { minHeight: 50, marginTop: spacing.md, paddingHorizontal: spacing.md, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, color: colors.text, backgroundColor: colors.backgroundSoft }, inputRow: { flexDirection: 'row', gap: spacing.sm },
   add: { minHeight: 50, marginTop: spacing.md, borderRadius: radius.md, backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm }, addText: { color: colors.black, fontWeight: '900' },
   foodRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 64, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }, foodIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: colors.primaryDark, alignItems: 'center', justifyContent: 'center' }, foodName: { color: colors.text, fontWeight: '700', flex: 1 }, foodCalories: { color: colors.text, fontWeight: '800', textAlign: 'right' }, foodProtein: { color: colors.textMuted, fontSize: 10, marginTop: 2 },
-});
+}));

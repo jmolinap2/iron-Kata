@@ -8,13 +8,15 @@ import Svg, { Defs, LinearGradient as SvgGradient, Path, Stop } from 'react-nati
 import type { RootStackParamList } from '../navigation/types';
 import { AppScrollView, Card, EmptyState, Header, ProgressBar, Screen, SectionTitle } from '../components/ui';
 import { useAppStore, weekSessions } from '../store/useAppStore';
-import { colors, radius, spacing } from '../theme';
+import { createThemedStyleSheet, radius, spacing, useTheme } from '../theme';
 import { formatDay, formatShortDate, formatWeight } from '../utils/format';
 
 type Navigation = NativeStackNavigationProp<RootStackParamList>;
 
 export function ProgressScreen() {
   const navigation = useNavigation<Navigation>();
+  const colors = useTheme();
+  const styles = useStyles();
   const sessions = useAppStore(state => state.sessions);
   const week = useMemo(() => weekSessions(sessions), [sessions]);
   const routines = useAppStore(state => state.routines);
@@ -86,6 +88,8 @@ export function ProgressScreen() {
 }
 
 function WeightChart({ values, width }: { values: number[]; width: number }) {
+  const colors = useTheme();
+  const styles = useStyles();
   const height = 130;
   if (values.length < 2) return <View style={styles.chartEmpty}><Text style={styles.chartEmptyText}>Registra al menos dos pesos para ver la tendencia.</Text></View>;
   const min = Math.min(...values) - 0.5; const max = Math.max(...values) + 0.5; const range = Math.max(1, max - min);
@@ -95,9 +99,9 @@ function WeightChart({ values, width }: { values: number[]; width: number }) {
   return <Svg width={width} height={height}><Defs><SvgGradient id="weight" x1="0" y1="0" x2="0" y2="1"><Stop offset="0" stopColor={colors.primary} stopOpacity="0.38"/><Stop offset="1" stopColor={colors.primary} stopOpacity="0"/></SvgGradient></Defs><Path d={area} fill="url(#weight)"/><Path d={line} fill="none" stroke={colors.primary} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"/></Svg>;
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyleSheet(colors => ({
   historyRow: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
-  check: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  check: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.success, alignItems: 'center', justifyContent: 'center' },
   day: { color: colors.text, fontSize: 14 }, date: { color: colors.textMuted, fontSize: 11, marginTop: 2 }, historyName: { color: colors.text, fontSize: 15, fontWeight: '800', flex: 1 },
   cardSubtitle: { color: colors.textMuted, fontSize: 13, marginTop: 3 }, volumeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.lg },
   volumeItem: { width: '48%', backgroundColor: colors.surfaceRaised, padding: spacing.md, borderRadius: radius.md, gap: spacing.sm }, volumeHeader: { flexDirection: 'row', justifyContent: 'space-between' }, volumeName: { color: colors.text, fontWeight: '700', fontSize: 13 }, volumeSets: { color: colors.textMuted, fontSize: 11 },
@@ -106,4 +110,4 @@ const styles = StyleSheet.create({
   inputRow: { flexDirection: 'row', gap: spacing.sm }, input: { flex: 1, minHeight: 48, color: colors.text, backgroundColor: colors.backgroundSoft, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: spacing.md, fontSize: 17 },
   addButton: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.primary, borderRadius: radius.md, paddingHorizontal: spacing.lg }, addButtonText: { color: colors.black, fontWeight: '900' },
   recordRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 62, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }, recordName: { color: colors.text, fontWeight: '700' }, recordMeta: { color: colors.textMuted, fontSize: 11 }, recordValue: { color: colors.warning, fontWeight: '900', textAlign: 'right' }, recordLabel: { color: colors.textDim, fontSize: 9 },
-});
+}));

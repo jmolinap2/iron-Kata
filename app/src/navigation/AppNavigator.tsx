@@ -2,8 +2,9 @@ import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors } from '../theme';
+import { useTheme } from '../theme';
 import type { MainTabsParamList, RootStackParamList } from './types';
 import { HomeScreen } from '../screens/HomeScreen';
 import { TrainingScreen } from '../screens/TrainingScreen';
@@ -26,13 +27,24 @@ const tabIcons: Record<keyof MainTabsParamList, keyof typeof Ionicons.glyphMap> 
 };
 
 function MainTabs() {
+  const insets = useSafeAreaInsets();
+  const colors = useTheme();
+  const safeBottom = Math.max(insets.bottom, 8);
+
   return (
     <Tabs.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textDim,
-        tabBarStyle: { backgroundColor: '#0B0E10', borderTopColor: colors.borderSoft, height: 76, paddingTop: 9, paddingBottom: 10 },
+        tabBarHideOnKeyboard: true,
+        tabBarStyle: {
+          backgroundColor: colors.navigation,
+          borderTopColor: colors.borderSoft,
+          height: 66 + safeBottom,
+          paddingTop: 9,
+          paddingBottom: safeBottom,
+        },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
         tabBarIcon: ({ color, size }) => <Ionicons name={tabIcons[route.name]} color={color} size={size + 2} />,
       })}
@@ -46,12 +58,13 @@ function MainTabs() {
   );
 }
 
-const navigationTheme = {
-  ...DarkTheme,
-  colors: { ...DarkTheme.colors, primary: colors.primary, background: colors.background, card: colors.background, border: colors.border, text: colors.text },
-};
-
 export function AppNavigator() {
+  const colors = useTheme();
+  const navigationTheme = {
+    ...DarkTheme,
+    colors: { ...DarkTheme.colors, primary: colors.primary, background: colors.background, card: colors.background, border: colors.border, text: colors.text },
+  };
+
   return (
     <NavigationContainer theme={navigationTheme}>
       <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background }, animation: 'slide_from_right' }}>

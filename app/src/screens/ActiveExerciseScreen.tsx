@@ -9,12 +9,14 @@ import type { RootStackParamList } from '../navigation/types';
 import { ActionButton, AppScrollView, Card, ProgressBar, Screen, SectionTitle } from '../components/ui';
 import { ExerciseMedia } from '../components/ExerciseMedia';
 import { useAppStore } from '../store/useAppStore';
-import { colors, radius, spacing } from '../theme';
+import { createThemedStyleSheet, radius, spacing, useTheme } from '../theme';
 import { formatDuration, formatWeight } from '../utils/format';
 
 type Navigation = NativeStackNavigationProp<RootStackParamList>;
 
 export function ActiveExerciseScreen() {
+  const colors = useTheme();
+  const styles = useStyles();
   const navigation = useNavigation<Navigation>();
   const active = useAppStore(state => state.activeWorkout);
   const completeSet = useAppStore(state => state.completeSet);
@@ -119,7 +121,7 @@ export function ActiveExerciseScreen() {
                 <View style={[styles.setNumber, value && styles.setNumberDone, isCurrent && styles.setNumberCurrent]}><Text style={[styles.setNumberText, value && { color: colors.black }]}>{index + 1}</Text></View>
                 <View style={styles.setValue}><Text style={styles.setLabel}>Peso</Text><Text style={styles.setText}>{value ? `${formatWeight(value.weight)} kg` : isCurrent ? `${formatWeight(weight)} kg` : '—'}</Text></View>
                 <View style={styles.setValue}><Text style={styles.setLabel}>Reps</Text><Text style={styles.setText}>{value?.reps ?? (isCurrent ? reps : '—')}</Text></View>
-                <View style={styles.status}>{value ? <><Ionicons name="checkmark-circle" size={21} color={colors.primary} /><Text style={styles.doneText}>Completada</Text></> : isCurrent ? <><View style={styles.liveDot} /><Text style={styles.liveText}>En curso</Text></> : <Text style={styles.pendingText}>Pendiente</Text>}</View>
+                <View style={styles.status}>{value ? <><Ionicons name="checkmark-circle" size={21} color={colors.success} /><Text style={styles.doneText}>Completada</Text></> : isCurrent ? <><View style={styles.liveDot} /><Text style={styles.liveText}>En curso</Text></> : <Text style={styles.pendingText}>Pendiente</Text>}</View>
               </View>
             );
           })}
@@ -156,10 +158,13 @@ export function ActiveExerciseScreen() {
 }
 
 function Target({ value, label }: { value: string; label: string }) {
+  const styles = useStyles();
   return <View style={styles.target}><Text style={styles.targetValue}>{value}</Text><Text style={styles.targetLabel}>{label}</Text></View>;
 }
 
 function Stepper({ label, value, onMinus, onPlus }: { label: string; value: string; onMinus: () => void; onPlus: () => void }) {
+  const colors = useTheme();
+  const styles = useStyles();
   return (
     <View style={styles.stepper}>
       <Text style={styles.stepperLabel}>{label}</Text>
@@ -172,7 +177,7 @@ function Stepper({ label, value, onMinus, onPlus }: { label: string; value: stri
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyleSheet(colors => ({
   center: { alignItems: 'center', justifyContent: 'center', padding: spacing.xl, gap: spacing.lg },
   emptyTitle: { color: colors.text, fontSize: 20, fontWeight: '800' },
   topbar: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 78 },
@@ -187,16 +192,16 @@ const styles = StyleSheet.create({
   targetLabel: { color: colors.textMuted, fontSize: 12, marginTop: 3 },
   setRow: { minHeight: 72, flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md },
   rowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
-  currentSet: { borderWidth: 1, borderColor: colors.primary, borderRadius: radius.md, backgroundColor: '#0D1208' },
+  currentSet: { borderWidth: 1, borderColor: colors.primary, borderRadius: radius.md, backgroundColor: colors.primarySoftBackground },
   setNumber: { width: 38, height: 38, borderRadius: 19, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', marginRight: spacing.md },
-  setNumberDone: { backgroundColor: colors.primary, borderColor: colors.primary },
+  setNumberDone: { backgroundColor: colors.success, borderColor: colors.success },
   setNumberCurrent: { borderColor: colors.primary },
   setNumberText: { color: colors.primary, fontWeight: '900' },
   setValue: { width: 65 },
   setLabel: { color: colors.textDim, fontSize: 10 },
   setText: { color: colors.text, fontWeight: '800', fontSize: 15, marginTop: 3 },
   status: { flex: 1, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 5 },
-  doneText: { color: colors.primary, fontSize: 12 }, liveText: { color: colors.primary, fontSize: 12 }, pendingText: { color: colors.textDim, fontSize: 12 },
+  doneText: { color: colors.success, fontSize: 12 }, liveText: { color: colors.primary, fontSize: 12 }, pendingText: { color: colors.textDim, fontSize: 12 },
   liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.primary },
   restCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
   timerIcon: { width: 58, height: 58, borderRadius: 18, backgroundColor: colors.primaryDark, alignItems: 'center', justifyContent: 'center' },
@@ -208,4 +213,4 @@ const styles = StyleSheet.create({
   roundControl: { width: 42, height: 42, borderRadius: 21, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   stepperValue: { minWidth: 52, color: colors.text, textAlign: 'center', fontSize: 25, fontWeight: '900' },
   hint: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center', marginTop: spacing.xl }, hintText: { color: colors.textMuted, fontSize: 12 },
-});
+}));

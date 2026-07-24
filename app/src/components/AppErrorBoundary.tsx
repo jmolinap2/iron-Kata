@@ -1,11 +1,17 @@
 import { Component, type ErrorInfo, type PropsWithChildren } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, spacing } from '../theme';
+import { spacing, type ThemeColors, useTheme } from '../theme';
 
 type State = { error: Error | null };
+type BoundaryProps = PropsWithChildren<{ colors: ThemeColors }>;
 
-export class AppErrorBoundary extends Component<PropsWithChildren, State> {
+export function AppErrorBoundary({ children }: PropsWithChildren) {
+  const colors = useTheme();
+  return <AppErrorBoundaryContent colors={colors}>{children}</AppErrorBoundaryContent>;
+}
+
+class AppErrorBoundaryContent extends Component<BoundaryProps, State> {
   state: State = { error: null };
 
   static getDerivedStateFromError(error: Error): State {
@@ -18,6 +24,7 @@ export class AppErrorBoundary extends Component<PropsWithChildren, State> {
 
   render() {
     if (!this.state.error) return this.props.children;
+    const styles = createStyles(this.props.colors);
 
     return (
       <View style={styles.container}>
@@ -30,11 +37,13 @@ export class AppErrorBoundary extends Component<PropsWithChildren, State> {
   }
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background, padding: spacing.xxl },
-  badge: { width: 66, height: 66, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.danger },
-  badgeText: { color: colors.text, fontSize: 36, fontWeight: '900' },
-  title: { color: colors.text, fontSize: 22, fontWeight: '900', textAlign: 'center', marginTop: spacing.xl },
-  body: { color: colors.textMuted, fontSize: 14, lineHeight: 21, textAlign: 'center', marginTop: spacing.md },
-  error: { width: '100%', color: colors.danger, backgroundColor: colors.surface, borderRadius: 12, padding: spacing.lg, marginTop: spacing.lg, fontSize: 12 },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background, padding: spacing.xxl },
+    badge: { width: 66, height: 66, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.danger },
+    badgeText: { color: colors.text, fontSize: 36, fontWeight: '900' },
+    title: { color: colors.text, fontSize: 22, fontWeight: '900', textAlign: 'center', marginTop: spacing.xl },
+    body: { color: colors.textMuted, fontSize: 14, lineHeight: 21, textAlign: 'center', marginTop: spacing.md },
+    error: { width: '100%', color: colors.danger, backgroundColor: colors.surface, borderRadius: 12, padding: spacing.lg, marginTop: spacing.lg, fontSize: 12 },
+  });
+}

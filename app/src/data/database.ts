@@ -1,6 +1,7 @@
 import * as SQLite from 'expo-sqlite';
 
 import { DEFAULT_PROFILE, SEED_EXERCISES, SEED_ROUTINES } from './seed';
+import { normalizeAppTheme } from '../types';
 import type {
   AppSnapshot,
   BodyWeight,
@@ -217,7 +218,7 @@ export async function loadSnapshot(): Promise<AppSnapshot> {
       availableDays: profileRow.available_days,
       durationMinutes: profileRow.duration_minutes,
       unit: profileRow.unit,
-      theme: profileRow.theme,
+      theme: normalizeAppTheme(profileRow.theme),
       calorieTarget: profileRow.calorie_target,
       proteinTarget: profileRow.protein_target,
     },

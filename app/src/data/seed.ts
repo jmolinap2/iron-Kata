@@ -7,7 +7,7 @@ export const DEFAULT_PROFILE: Profile = {
   availableDays: 4,
   durationMinutes: 70,
   unit: 'kg',
-  theme: 'Oscuro',
+  theme: 'Lima',
   calorieTarget: 2300,
   proteinTarget: 180,
 };

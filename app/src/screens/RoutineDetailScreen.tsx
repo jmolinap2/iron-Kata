@@ -8,13 +8,15 @@ import type { RootStackParamList } from '../navigation/types';
 import { ActionButton, AppScrollView, Card, ProgressBar, Screen } from '../components/ui';
 import { ExerciseMedia } from '../components/ExerciseMedia';
 import { selectRecommendedRoutine, useAppStore } from '../store/useAppStore';
-import { colors, radius, spacing } from '../theme';
+import { createThemedStyleSheet, radius, spacing, useTheme } from '../theme';
 import { formatWeight } from '../utils/format';
 
 type Navigation = NativeStackNavigationProp<RootStackParamList>;
 
 export function RoutineDetailScreen() {
   const navigation = useNavigation<Navigation>();
+  const colors = useTheme();
+  const styles = useStyles();
   const route = useRoute<RouteProp<RootStackParamList, 'RoutineDetail'>>();
   const routines = useAppStore(state => state.routines);
   const recommended = useAppStore(selectRecommendedRoutine);
@@ -78,10 +80,12 @@ export function RoutineDetailScreen() {
 }
 
 function Metric({ value, label, icon }: { value: string; label: string; icon: keyof typeof Ionicons.glyphMap }) {
+  const colors = useTheme();
+  const styles = useStyles();
   return <View style={styles.metric}><Text style={styles.metricValue}>{value}</Text><View style={styles.metricLabelRow}><Ionicons name={icon} size={15} color={colors.primary} /><Text style={styles.metricLabel}>{label}</Text></View></View>;
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyleSheet(colors => ({
   topbar: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 80 },
   iconButton: { width: 43, height: 43, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   title: { color: colors.text, fontSize: 30, fontWeight: '900', letterSpacing: -0.7 },
@@ -89,7 +93,7 @@ const styles = StyleSheet.create({
   streak: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 10 },
   streakText: { color: colors.text, fontWeight: '800' },
   progressLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: -8 },
-  progressGreen: { color: colors.primary, fontWeight: '700' },
+  progressGreen: { color: colors.success, fontWeight: '700' },
   progressMuted: { color: colors.textMuted },
   exerciseCard: { padding: spacing.md },
   exerciseCardOpen: { borderColor: colors.primary },
@@ -109,4 +113,4 @@ const styles = StyleSheet.create({
   loadValue: { color: colors.text, fontSize: 17, fontWeight: '800', marginTop: 4, textAlign: 'center' },
   instruction: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   instructionText: { color: colors.textMuted, fontSize: 12, flex: 1 },
-});
+}));

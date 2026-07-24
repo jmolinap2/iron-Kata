@@ -30,8 +30,8 @@ import { estimateOneRepMax, isNewRecord, nextRoutine } from '../domain/rules';
 const makeId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 const EMPTY_SNAPSHOT: AppSnapshot = {
   profile: {
-    name: 'Atleta', goal: '', experience: 'Principiante', availableDays: 3,
-    durationMinutes: 60, unit: 'kg', theme: 'Oscuro', calorieTarget: 2300, proteinTarget: 180,
+    name: 'Atleta', goal: 'Ganar fuerza y masa muscular', experience: 'Principiante', availableDays: 3,
+    durationMinutes: 60, unit: 'kg', theme: 'Lima', calorieTarget: 2300, proteinTarget: 180,
   },
   routines: [], sessions: [], weights: [], foods: [], records: [],
 };

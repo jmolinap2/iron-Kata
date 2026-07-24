@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import * as DocumentPicker from 'expo-document-picker';
@@ -8,10 +8,12 @@ import * as Sharing from 'expo-sharing';
 
 import { ActionButton, AppScrollView, Card, Screen } from '../components/ui';
 import { useAppStore } from '../store/useAppStore';
-import { colors, spacing } from '../theme';
+import { createThemedStyleSheet, spacing, useTheme } from '../theme';
 
 export function BackupScreen() {
   const navigation = useNavigation();
+  const colors = useTheme();
+  const styles = useStyles();
   const createBackup = useAppStore(state => state.createBackup);
   const restoreBackup = useAppStore(state => state.restoreBackup);
   const [busy, setBusy] = useState(false);
@@ -49,7 +51,7 @@ export function BackupScreen() {
   </AppScrollView></Screen>;
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyleSheet(colors => ({
   topbar: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 86 }, back: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center' }, title: { color: colors.text, fontSize: 29, fontWeight: '900' }, subtitle: { color: colors.textMuted, marginTop: 3 },
   icon: { width: 58, height: 58, borderRadius: 18, backgroundColor: colors.primaryDark, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md }, cardTitle: { color: colors.text, fontSize: 19, fontWeight: '900' }, body: { color: colors.textMuted, lineHeight: 20, marginVertical: spacing.md }, notice: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: spacing.sm }, noticeText: { color: colors.textMuted, fontSize: 12 },
-});
+}));

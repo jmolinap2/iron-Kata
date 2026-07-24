@@ -9,6 +9,17 @@ export type MuscleGroup =
 
 export type WeightUnit = 'kg' | 'lb';
 
+export const APP_THEMES = ['Lima', 'Esmeralda', 'Cobalto', 'Ámbar'] as const;
+export type AppTheme = typeof APP_THEMES[number];
+
+export function normalizeAppTheme(value: unknown): AppTheme {
+  return APP_THEMES.includes(value as AppTheme) ? value as AppTheme : 'Lima';
+}
+
+export function resolveVisibleTheme(savedTheme: AppTheme, previewTheme: AppTheme | null): AppTheme {
+  return previewTheme ?? savedTheme;
+}
+
 export type Exercise = {
   id: string;
   name: string;
@@ -79,14 +90,16 @@ export type PersonalRecord = {
   achievedAt: string;
 };
 
+export type ProfileGoal = 'Ganar fuerza y masa muscular' | 'Perder grasa' | 'Mantenimiento' | 'Resistencia';
+
 export type Profile = {
   name: string;
-  goal: string;
+  goal: ProfileGoal;
   experience: 'Principiante' | 'Intermedio' | 'Avanzado';
   availableDays: number;
   durationMinutes: number;
   unit: WeightUnit;
-  theme: 'Oscuro';
+  theme: AppTheme;
   calorieTarget: number;
   proteinTarget: number;
 };

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -8,12 +8,14 @@ import type { RootStackParamList } from '../navigation/types';
 import { ActionButton, AppScrollView, Card, Screen } from '../components/ui';
 import { ExerciseMedia } from '../components/ExerciseMedia';
 import { useAppStore } from '../store/useAppStore';
-import { colors, spacing } from '../theme';
+import { createThemedStyleSheet, spacing, useTheme } from '../theme';
 
 type Navigation = NativeStackNavigationProp<RootStackParamList>;
 
 export function QuickWorkoutScreen() {
   const navigation = useNavigation<Navigation>();
+  const colors = useTheme();
+  const styles = useStyles();
   const allRoutines = useAppStore(state => state.routines);
   const routines = useMemo(() => allRoutines.filter(item => !item.isRest), [allRoutines]);
   const startRoutine = useAppStore(state => state.startRoutine);
@@ -32,7 +34,7 @@ export function QuickWorkoutScreen() {
   </AppScrollView></Screen>;
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyleSheet(colors => ({
   topbar: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 86 }, back: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center' }, title: { color: colors.text, fontSize: 27, fontWeight: '900' }, subtitle: { color: colors.textMuted, marginTop: 3 },
   routineName: { color: colors.text, fontSize: 20, fontWeight: '900' }, meta: { color: colors.textMuted, fontSize: 12, marginTop: 3 }, preview: { flexDirection: 'row', gap: spacing.sm, marginVertical: spacing.lg }, previewItem: { flex: 1 }, thumb: { width: '100%', aspectRatio: 1.35 }, exercise: { color: colors.text, fontSize: 10, fontWeight: '700', marginTop: 5 },
-});
+}));
