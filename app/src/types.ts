@@ -5,6 +5,9 @@ export type MuscleGroup =
   | 'Tríceps'
   | 'Piernas'
   | 'Hombros'
+  | 'Pantorrillas'
+  | 'Glúteos'
+  | 'Abdomen'
   | 'Descanso';
 
 export type WeightUnit = 'kg' | 'lb';
@@ -94,6 +97,8 @@ export type ProfileGoal = 'Ganar fuerza y masa muscular' | 'Perder grasa' | 'Man
 
 export type Profile = {
   name: string;
+  onboarded: boolean;
+  sex: 'Hombre' | 'Mujer';
   goal: ProfileGoal;
   experience: 'Principiante' | 'Intermedio' | 'Avanzado';
   availableDays: number;
@@ -115,6 +120,7 @@ export type ActiveWorkout = {
 export type AppSnapshot = {
   profile: Profile;
   routines: Routine[];
+  exercises: Exercise[];
   sessions: WorkoutSession[];
   weights: BodyWeight[];
   foods: FoodEntry[];

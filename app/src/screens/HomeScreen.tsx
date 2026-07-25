@@ -6,8 +6,8 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 
 import type { RootStackParamList } from '../navigation/types';
-import { heroPull } from '../media';
-import { ActionButton, AppScrollView, Card, Header, Pill, Screen, SectionTitle } from '../components/ui';
+import { heroPullFemale, heroPullMale } from '../media';
+import { ActionButton, AppScrollView, Card, Header, InfoHint, Pill, Screen, SectionTitle } from '../components/ui';
 import { ExerciseMedia } from '../components/ExerciseMedia';
 import { selectRecommendedRoutine, useAppStore, weekSessions } from '../store/useAppStore';
 import { createThemedStyleSheet, radius, spacing, useTheme } from '../theme';
@@ -26,6 +26,7 @@ export function HomeScreen() {
   const activeWorkout = useAppStore(state => state.activeWorkout);
   const completeRest = useAppStore(state => state.completeRest);
   const lastCompleted = sessions.find(item => item.status === 'completed' && !item.isQuick);
+  const heroPull = profile.sex === 'Mujer' ? heroPullFemale : heroPullMale;
 
   const openPrimary = async () => {
     if (activeWorkout) {
@@ -58,7 +59,10 @@ export function HomeScreen() {
           <ImageBackground source={heroPull} style={styles.heroImage} imageStyle={styles.heroImageStyle} resizeMode="cover">
             <LinearGradient colors={[colors.heroOverlayStart, colors.heroOverlayMiddle, 'rgba(0,0,0,0.04)']} locations={[0, 0.55, 1]} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={StyleSheet.absoluteFill} />
             <View style={styles.heroContent}>
-              <Text style={styles.eyebrow}>{activeWorkout ? 'ENTRENAMIENTO EN CURSO' : 'HOY TE TOCA'}</Text>
+              <View style={styles.eyebrowRow}>
+                <Text style={styles.eyebrow}>{activeWorkout ? 'ENTRENAMIENTO EN CURSO' : 'HOY TE TOCA'}</Text>
+                <InfoHint tint={colors.textOnImage} title="Tu entrenamiento de hoy" body="Esta tarjeta siempre muestra lo próximo en tu secuencia: la rutina que sigue, o el entrenamiento en curso si ya empezaste uno. Se arma sola según tu historial, no hace falta elegirla a mano." />
+              </View>
               <Text style={styles.heroTitle}>{activeWorkout?.routine.name ?? recommended?.name ?? 'Configura tu rutina'}</Text>
               <View style={styles.accentLine} />
               <Text style={styles.heroBody}>{recommended?.isRest ? 'Recupérate hoy para continuar con fuerza.' : 'Tu siguiente bloque pendiente, listo para empezar.'}</Text>
@@ -87,7 +91,7 @@ export function HomeScreen() {
         <Card style={styles.recommendation} delay={130}>
           <View style={styles.bulb}><Ionicons name="bulb-outline" size={29} color={colors.warning} /></View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.recommendationTitle}>Por qué esta recomendación</Text>
+            <View style={styles.recommendationTitleRow}><Text style={styles.recommendationTitle}>Por qué esta recomendación</Text><InfoHint title="Cómo se elige tu entrenamiento" body="Iron Kata sigue tu secuencia de rutinas en orden y recuerda cuál fue la última que completaste — incluyendo los días de descanso, que también cuentan como un paso de la secuencia. Al completar uno, avanza al siguiente." /></View>
             <Text style={styles.recommendationBody}>{explanation}</Text>
           </View>
         </Card>
@@ -125,6 +129,7 @@ const useStyles = createThemedStyleSheet(colors => ({
   heroCard: { padding: 0, height: 272, borderColor: colors.primaryBorder },
   heroImage: { flex: 1 }, heroImageStyle: { borderRadius: radius.lg },
   heroContent: { width: '66%', height: '100%', justifyContent: 'center', padding: spacing.xl },
+  eyebrowRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   eyebrow: { color: colors.primary, fontWeight: '800', fontSize: 14, letterSpacing: 0.6 },
   heroTitle: { color: colors.text, fontSize: 36, fontWeight: '900', lineHeight: 40, marginTop: spacing.md, letterSpacing: -1 },
   accentLine: { width: 48, height: 4, borderRadius: 2, backgroundColor: colors.primary, marginVertical: spacing.lg },
@@ -139,7 +144,8 @@ const useStyles = createThemedStyleSheet(colors => ({
   emptyWeekText: { color: colors.textMuted, fontSize: 14 },
   recommendation: { flexDirection: 'row', gap: spacing.lg, backgroundColor: colors.warningSurface, borderColor: colors.warningBorder },
   bulb: { width: 50, height: 50, borderRadius: 15, backgroundColor: colors.warningSurface, borderWidth: 1, borderColor: colors.warningBorder, alignItems: 'center', justifyContent: 'center' },
-  recommendationTitle: { color: colors.warning, fontSize: 14, fontWeight: '800', marginBottom: 3 },
+  recommendationTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: 3 },
+  recommendationTitle: { color: colors.warning, fontSize: 14, fontWeight: '800' },
   recommendationBody: { color: colors.text, fontSize: 14, lineHeight: 20 },
   exerciseList: { padding: 0 },
   exerciseRow: { minHeight: 78, flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, gap: spacing.md },

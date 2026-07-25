@@ -7,27 +7,39 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AppErrorBoundary } from './src/components/AppErrorBoundary';
 import { AppNavigator } from './src/navigation/AppNavigator';
+import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { useAppStore } from './src/store/useAppStore';
+import type { Profile } from './src/types';
 import { createThemedStyleSheet, ThemeProvider, useTheme } from './src/theme';
 
 export default function App() {
   const initialize = useAppStore(state => state.initialize);
   const initialized = useAppStore(state => state.initialized);
   const error = useAppStore(state => state.error);
-  const selectedTheme = useAppStore(state => state.profile.theme);
+  const profile = useAppStore(state => state.profile);
+  const updateProfile = useAppStore(state => state.updateProfile);
 
   useEffect(() => { void initialize(); }, [initialize]);
 
   return (
-    <ThemeProvider savedTheme={selectedTheme}>
-      <AppContent initialized={initialized} error={error} />
+    <ThemeProvider savedTheme={profile.theme}>
+      <AppContent initialized={initialized} error={error} profile={profile} onOnboardingComplete={updateProfile} />
     </ThemeProvider>
   );
 }
 
-function AppContent({ initialized, error }: { initialized: boolean; error: string | null }) {
+function AppContent({ initialized, error, profile, onOnboardingComplete }: { initialized: boolean; error: string | null; profile: Profile; onOnboardingComplete: (profile: Profile) => void }) {
   const colors = useTheme();
   const styles = useStyles();
+
+  if (initialized && !profile.onboarded) {
+    return (
+      <SafeAreaProvider>
+        <OnboardingScreen base={profile} onComplete={onOnboardingComplete} />
+        <StatusBar style="light" />
+      </SafeAreaProvider>
+    );
+  }
 
   if (!initialized) {
     return (

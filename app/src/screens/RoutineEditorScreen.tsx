@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
@@ -7,7 +7,7 @@ import type { RootStackParamList } from '../navigation/types';
 import { ActionButton, AppScrollView, Card, Screen, SectionTitle } from '../components/ui';
 import { ExerciseMedia } from '../components/ExerciseMedia';
 import { useAppStore } from '../store/useAppStore';
-import type { MuscleGroup, PlannedExercise, Routine } from '../types';
+import type { Exercise, MuscleGroup, PlannedExercise, Routine } from '../types';
 import { createThemedStyleSheet, radius, spacing, useTheme } from '../theme';
 
 export function RoutineEditorScreen() {
@@ -16,13 +16,10 @@ export function RoutineEditorScreen() {
   const styles = useStyles();
   const route = useRoute<RouteProp<RootStackParamList, 'RoutineEditor'>>();
   const routines = useAppStore(state => state.routines);
+  const allExercises = useAppStore(state => state.exercises);
   const saveRoutine = useAppStore(state => state.saveRoutine);
+  const deleteRoutine = useAppStore(state => state.deleteRoutine);
   const source = routines.find(item => item.id === route.params?.routineId);
-  const allExercises = useMemo(() => {
-    const map = new Map<string, PlannedExercise>();
-    routines.flatMap(item => item.exercises).forEach(item => map.set(item.id, item));
-    return [...map.values()];
-  }, [routines]);
   const [draft, setDraft] = useState<Routine>(() => source ? JSON.parse(JSON.stringify(source)) : {
     id: `custom-${Date.now()}`, name: 'Mi rutina', orderIndex: routines.length,
     muscles: [], isRest: false, active: true, exercises: [],
@@ -36,7 +33,7 @@ export function RoutineEditorScreen() {
     return { ...value, exercises };
   });
   const remove = (index: number) => setDraft(value => ({ ...value, exercises: value.exercises.filter((_, itemIndex) => itemIndex !== index) }));
-  const add = (item: PlannedExercise) => setDraft(value => ({ ...value, exercises: [...value.exercises, { ...item, routineId: value.id, position: value.exercises.length, sets: 3, repMin: 8, repMax: 12, restSeconds: 90, lastWeight: null }] }));
+  const add = (item: Exercise) => setDraft(value => ({ ...value, exercises: [...value.exercises, { ...item, routineId: value.id, position: value.exercises.length, sets: 3, repMin: 8, repMax: 12, restSeconds: 90, lastWeight: null }] }));
 
   const save = async () => {
     if (!draft.name.trim()) { Alert.alert('Nombre requerido', 'Escribe un nombre para la rutina.'); return; }
@@ -49,6 +46,11 @@ export function RoutineEditorScreen() {
       Alert.alert('Rutina guardada', 'La secuencia se actualizó correctamente.', [{ text: 'Aceptar', onPress: () => navigation.goBack() }]);
     } finally { setSaving(false); }
   };
+
+  const removeRoutine = () => Alert.alert('Eliminar rutina', `Se borrará "${draft.name}" y su historial de ejercicios asociados. Esta acción no se puede deshacer.`, [
+    { text: 'Cancelar', style: 'cancel' },
+    { text: 'Eliminar', style: 'destructive', onPress: () => { void deleteRoutine(draft.id).then(() => navigation.goBack()); } },
+  ]);
 
   const available = allExercises.filter(item => !draft.exercises.some(selected => selected.id === item.id));
   return <Screen><AppScrollView contentStyle={{ paddingTop: spacing.md }}>
@@ -63,6 +65,7 @@ export function RoutineEditorScreen() {
       {available.length ? <Card><SectionTitle title="Añadir ejercicio" />{available.map(item => <Pressable key={item.id} style={styles.addRow} onPress={() => add(item)}><ExerciseMedia mediaKey={item.mediaKey} style={styles.addThumb}/><View style={{ flex: 1 }}><Text style={styles.addName}>{item.name}</Text><Text style={styles.muscle}>{item.muscle}</Text></View><Ionicons name="add-circle" size={25} color={colors.primary}/></Pressable>)}</Card> : null}
     </> : null}
     <ActionButton label="Guardar rutina" icon="save-outline" loading={saving} onPress={() => { void save(); }}/>
+    {source ? <Pressable style={styles.deleteRoutine} onPress={removeRoutine}><Ionicons name="trash-outline" size={18} color={colors.danger} /><Text style={styles.deleteRoutineText}>Eliminar rutina</Text></Pressable> : null}
   </AppScrollView></Screen>;
 }
 
@@ -74,4 +77,5 @@ const useStyles = createThemedStyleSheet(colors => ({
   exerciseTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm }, position: { width: 32, height: 32, borderRadius: 16, borderWidth: 1, borderColor: colors.primary, alignItems: 'center', justifyContent: 'center' }, positionText: { color: colors.primary, fontWeight: '900' }, thumb: { width: 66, height: 48 }, exerciseName: { color: colors.text, fontWeight: '800' }, muscle: { color: colors.textMuted, fontSize: 11, marginTop: 2 }, actions: { flexDirection: 'row', gap: spacing.md },
   configRow: { flexDirection: 'row', gap: spacing.xs, marginTop: spacing.md }, mini: { flex: 1, backgroundColor: colors.backgroundSoft, borderRadius: radius.sm, padding: spacing.sm, alignItems: 'center' }, miniLabel: { color: colors.textDim, fontSize: 9 }, miniControls: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 6 }, miniValue: { color: colors.text, minWidth: 23, textAlign: 'center', fontWeight: '800', fontSize: 12 },
   addRow: { minHeight: 62, flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }, addThumb: { width: 58, height: 42 }, addName: { color: colors.text, fontWeight: '700' },
+  deleteRoutine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, minHeight: 50, marginTop: spacing.sm }, deleteRoutineText: { color: colors.danger, fontWeight: '700' },
 }));

@@ -13,6 +13,7 @@ export function NutritionScreen() {
   const profile = useAppStore(state => state.profile);
   const foods = useAppStore(state => state.foods);
   const addFood = useAppStore(state => state.addFood);
+  const deleteFoodEntry = useAppStore(state => state.deleteFoodEntry);
   const today = useMemo(() => foods.filter(item => isSameDay(item.date, new Date())), [foods]);
   const calories = today.reduce((sum, item) => sum + item.calories, 0);
   const protein = today.reduce((sum, item) => sum + item.protein, 0);
@@ -23,6 +24,11 @@ export function NutritionScreen() {
     if (!name.trim() || !Number.isFinite(kcal) || kcal <= 0 || !Number.isFinite(grams) || grams < 0) { Alert.alert('Datos incompletos', 'Escribe alimento, calorías y proteína válidos.'); return; }
     await addFood(name.trim(), kcal, grams); setName(''); setCalorieInput(''); setProteinInput('');
   };
+
+  const removeFood = (id: string) => Alert.alert('Eliminar alimento', '¿Quitar este registro de hoy?', [
+    { text: 'Cancelar', style: 'cancel' },
+    { text: 'Eliminar', style: 'destructive', onPress: () => { void deleteFoodEntry(id); } },
+  ]);
 
   return (
     <Screen><AppScrollView>
@@ -38,7 +44,7 @@ export function NutritionScreen() {
         <View style={styles.inputRow}><TextInput style={[styles.input, { flex: 1 }]} value={calorieInput} onChangeText={setCalorieInput} keyboardType="number-pad" placeholder="Calorías" placeholderTextColor={colors.textDim} /><TextInput style={[styles.input, { flex: 1 }]} value={proteinInput} onChangeText={setProteinInput} keyboardType="decimal-pad" placeholder="Proteína (g)" placeholderTextColor={colors.textDim} /></View>
         <Pressable onPress={() => { void save(); }} style={styles.add}><Ionicons name="add-circle" size={22} color={colors.black} /><Text style={styles.addText}>Añadir al día</Text></Pressable>
       </Card>
-      <Card><SectionTitle title="Hoy" />{today.length ? today.map(item => <View key={item.id} style={styles.foodRow}><View style={styles.foodIcon}><Ionicons name="restaurant-outline" size={19} color={colors.primary} /></View><Text style={styles.foodName}>{item.name}</Text><View><Text style={styles.foodCalories}>{item.calories} kcal</Text><Text style={styles.foodProtein}>{item.protein} g proteína</Text></View></View>) : <EmptyState icon="restaurant-outline" title="Aún no registraste alimentos" body="Añade solo lo necesario para controlar calorías y proteína." />}</Card>
+      <Card><SectionTitle title="Hoy" />{today.length ? today.map(item => <View key={item.id} style={styles.foodRow}><View style={styles.foodIcon}><Ionicons name="restaurant-outline" size={19} color={colors.primary} /></View><Text style={styles.foodName}>{item.name}</Text><View><Text style={styles.foodCalories}>{item.calories} kcal</Text><Text style={styles.foodProtein}>{item.protein} g proteína</Text></View><Pressable onPress={() => removeFood(item.id)} hitSlop={8}><Ionicons name="trash-outline" size={18} color={colors.danger} /></Pressable></View>) : <EmptyState icon="restaurant-outline" title="Aún no registraste alimentos" body="Añade solo lo necesario para controlar calorías y proteína." />}</Card>
     </AppScrollView></Screen>
   );
 }

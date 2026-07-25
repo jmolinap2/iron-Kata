@@ -1,8 +1,8 @@
-import type { PropsWithChildren, ReactNode } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useState, type PropsWithChildren, type ReactNode } from 'react';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, FadeOut, SlideInDown, SlideOutDown, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { createThemedStyleSheet, radius, shadow, spacing, typography, useTheme } from '../theme';
@@ -102,6 +102,41 @@ export function SectionTitle({ title, action, onAction }: { title: string; actio
   );
 }
 
+export function InfoHint({ title, body, icon = 'information-circle', tint }: { title: string; body: string; icon?: keyof typeof Ionicons.glyphMap; tint?: string }) {
+  const colors = useTheme();
+  const [visible, setVisible] = useState(false);
+  return (
+    <>
+      <Pressable onPress={() => setVisible(true)} hitSlop={10}>
+        <Ionicons name="information-circle-outline" size={16} color={tint ?? colors.textDim} />
+      </Pressable>
+      <HelpSheet visible={visible} onClose={() => setVisible(false)} title={title} body={body} icon={icon} />
+    </>
+  );
+}
+
+export function HelpSheet({ visible, onClose, title, body, icon = 'information-circle' }: { visible: boolean; onClose: () => void; title: string; body: string; icon?: keyof typeof Ionicons.glyphMap }) {
+  const colors = useTheme();
+  const styles = useStyles();
+  if (!visible) return null;
+  return (
+    <Modal transparent visible={visible} animationType="none" statusBarTranslucent onRequestClose={onClose}>
+      <View style={styles.sheetOverlay}>
+        <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(180)} style={StyleSheet.absoluteFill}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+        </Animated.View>
+        <Animated.View entering={SlideInDown.duration(280)} exiting={SlideOutDown.duration(200)} style={styles.sheetCard}>
+          <View style={styles.sheetHandle} />
+          <View style={styles.sheetIcon}><Ionicons name={icon} size={26} color={colors.primary} /></View>
+          <Text style={styles.sheetTitle}>{title}</Text>
+          <Text style={styles.sheetBody}>{body}</Text>
+          <Pressable style={styles.sheetButton} onPress={onClose}><Text style={styles.sheetButtonText}>Entendido</Text></Pressable>
+        </Animated.View>
+      </View>
+    </Modal>
+  );
+}
+
 export function ProgressBar({ progress, color }: { progress: number; color?: string }) {
   const colors = useTheme();
   const styles = useStyles();
@@ -155,4 +190,12 @@ const useStyles = createThemedStyleSheet(colors => ({
   emptyBody: { color: colors.textMuted, fontSize: typography.small, textAlign: 'center', marginTop: spacing.xs, lineHeight: 19 },
   pill: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center', borderColor: colors.border, borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   pillText: { color: colors.text, fontSize: typography.small, fontWeight: '700' },
+  sheetOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(2,3,4,0.68)' },
+  sheetCard: { backgroundColor: colors.surface, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, borderWidth: 1, borderColor: colors.border, borderBottomWidth: 0, padding: spacing.xl, paddingBottom: spacing.xxl, alignItems: 'center' },
+  sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border, marginBottom: spacing.lg },
+  sheetIcon: { width: 54, height: 54, borderRadius: 18, backgroundColor: colors.primaryDark, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md },
+  sheetTitle: { color: colors.text, fontSize: typography.subheading, fontWeight: '900', textAlign: 'center' },
+  sheetBody: { color: colors.textMuted, fontSize: typography.small, lineHeight: 21, textAlign: 'center', marginTop: spacing.sm },
+  sheetButton: { minHeight: 50, borderRadius: radius.md, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xxl, marginTop: spacing.xl, alignSelf: 'stretch' },
+  sheetButtonText: { color: colors.black, fontWeight: '900', fontSize: 15 },
 }));

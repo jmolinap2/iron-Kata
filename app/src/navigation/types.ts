@@ -7,6 +7,8 @@ export type RootStackParamList = {
   QuickWorkout: undefined;
   Backup: undefined;
   SessionDetail: { sessionId: string };
+  LogPastWorkout: { routineId?: string } | undefined;
+  HowItWorks: undefined;
 };
 
 export type MainTabsParamList = {

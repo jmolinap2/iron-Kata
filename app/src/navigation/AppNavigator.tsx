@@ -18,6 +18,8 @@ import { RoutineEditorScreen } from '../screens/RoutineEditorScreen';
 import { QuickWorkoutScreen } from '../screens/QuickWorkoutScreen';
 import { BackupScreen } from '../screens/BackupScreen';
 import { SessionDetailScreen } from '../screens/SessionDetailScreen';
+import { LogPastWorkoutScreen } from '../screens/LogPastWorkoutScreen';
+import { HowItWorksScreen } from '../screens/HowItWorksScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tabs = createBottomTabNavigator<MainTabsParamList>();
@@ -35,6 +37,7 @@ function MainTabs() {
     <Tabs.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
+        animation: 'shift',
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textDim,
         tabBarHideOnKeyboard: true,
@@ -76,6 +79,8 @@ export function AppNavigator() {
         <Stack.Screen name="QuickWorkout" component={QuickWorkoutScreen} />
         <Stack.Screen name="Backup" component={BackupScreen} />
         <Stack.Screen name="SessionDetail" component={SessionDetailScreen} />
+        <Stack.Screen name="LogPastWorkout" component={LogPastWorkoutScreen} />
+        <Stack.Screen name="HowItWorks" component={HowItWorksScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -51,6 +51,55 @@ export const exerciseMedia: Record<string, MediaAsset> = {
     animation: require('../assets/motion/lateral-raise.webp'),
     thumbnail: require('../assets/motion/lateral-raise-thumb.webp'),
   },
+  'incline-bench-press': {
+    animation: require('../assets/motion/incline-bench-press.webp'),
+    thumbnail: require('../assets/motion/incline-bench-press-thumb.webp'),
+  },
+  'rear-delt-fly': {
+    animation: require('../assets/motion/rear-delt-fly.webp'),
+    thumbnail: require('../assets/motion/rear-delt-fly-thumb.webp'),
+  },
+  'leg-extension': {
+    animation: require('../assets/motion/leg-extension.webp'),
+    thumbnail: require('../assets/motion/leg-extension-thumb.webp'),
+  },
+  'pec-deck-fly': {
+    animation: require('../assets/motion/pec-deck-fly.webp'),
+    thumbnail: require('../assets/motion/pec-deck-fly-thumb.webp'),
+  },
+  'dumbbell-fly': {
+    animation: require('../assets/motion/dumbbell-fly.webp'),
+    thumbnail: require('../assets/motion/dumbbell-fly-thumb.webp'),
+  },
+  'bench-dips': {
+    animation: require('../assets/motion/bench-dips.webp'),
+    thumbnail: require('../assets/motion/bench-dips-thumb.webp'),
+  },
+  'femoral-echado': {
+    animation: require('../assets/motion/femoral-echado.webp'),
+    thumbnail: require('../assets/motion/femoral-echado-thumb.webp'),
+  },
+  'hip-adductor': {
+    animation: require('../assets/motion/hip-adductor.webp'),
+    thumbnail: require('../assets/motion/hip-adductor-thumb.webp'),
+  },
+  'hip-abductor': {
+    animation: require('../assets/motion/hip-abductor.webp'),
+    thumbnail: require('../assets/motion/hip-abductor-thumb.webp'),
+  },
+  'calf-raise': {
+    animation: require('../assets/motion/calf-raise.webp'),
+    thumbnail: require('../assets/motion/calf-raise-thumb.webp'),
+  },
+  'hip-thrust': {
+    animation: require('../assets/motion/hip-thrust.webp'),
+    thumbnail: require('../assets/motion/hip-thrust-thumb.webp'),
+  },
+  'roman-chair-situp': {
+    animation: require('../assets/motion/roman-chair-situp.webp'),
+    thumbnail: require('../assets/motion/roman-chair-situp-thumb.webp'),
+  },
 };
 
-export const heroPull = require('../assets/images/hero-pull.png');
+export const heroPullMale = require('../assets/images/hero-pull.png');
+export const heroPullFemale = require('../assets/images/hero-pull-XX.png');

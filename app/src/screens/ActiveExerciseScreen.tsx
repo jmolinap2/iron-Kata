@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
 
 import type { RootStackParamList } from '../navigation/types';
 import { ActionButton, AppScrollView, Card, ProgressBar, Screen, SectionTitle } from '../components/ui';
@@ -91,25 +92,27 @@ export function ActiveExerciseScreen() {
   return (
     <Screen>
       <AppScrollView contentStyle={{ paddingTop: spacing.sm }}>
-        <View style={styles.topbar}>
-          <Pressable onPress={() => active.exerciseIndex ? previousExercise() : navigation.goBack()} style={styles.iconButton}>
-            <Ionicons name="arrow-back" size={25} color={colors.text} />
-          </Pressable>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.title}>{exercise.name}</Text>
-            <Text style={styles.subtitle}>{exercise.muscle} · {active.exerciseIndex + 1} de {active.routine.exercises.length}</Text>
+        <Animated.View key={exercise.id} entering={FadeIn.duration(220)} style={{ gap: spacing.lg }}>
+          <View style={styles.topbar}>
+            <Pressable onPress={() => active.exerciseIndex ? previousExercise() : navigation.goBack()} style={styles.iconButton}>
+              <Ionicons name="arrow-back" size={25} color={colors.text} />
+            </Pressable>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.title}>{exercise.name}</Text>
+              <Text style={styles.subtitle}>{exercise.muscle} · {active.exerciseIndex + 1} de {active.routine.exercises.length}</Text>
+            </View>
+            <Text style={styles.percent}>{totalSets ? Math.round(completedTotal / totalSets * 100) : 0}%</Text>
           </View>
-          <Text style={styles.percent}>{totalSets ? Math.round(completedTotal / totalSets * 100) : 0}%</Text>
-        </View>
-        <ProgressBar progress={totalSets ? completedTotal / totalSets : 0} />
+          <ProgressBar progress={totalSets ? completedTotal / totalSets : 0} />
 
-        <ExerciseMedia mediaKey={exercise.mediaKey} animated style={styles.demo} />
+          <ExerciseMedia mediaKey={exercise.mediaKey} animated style={styles.demo} />
 
-        <Card style={styles.targets}>
-          <Target value={String(exercise.sets)} label="series" />
-          <Target value={`${exercise.repMin}–${exercise.repMax}`} label="repeticiones" />
-          <Target value={`${exercise.restSeconds} s`} label="descanso" />
-        </Card>
+          <Card style={styles.targets}>
+            <Target value={String(exercise.sets)} label="series" />
+            <Target value={`${exercise.repMin}–${exercise.repMax}`} label="repeticiones" />
+            <Target value={`${exercise.restSeconds} s`} label="descanso" />
+          </Card>
+        </Animated.View>
 
         <SectionTitle title="Series" />
         <Card style={{ padding: 0 }}>
@@ -121,7 +124,7 @@ export function ActiveExerciseScreen() {
                 <View style={[styles.setNumber, value && styles.setNumberDone, isCurrent && styles.setNumberCurrent]}><Text style={[styles.setNumberText, value && { color: colors.black }]}>{index + 1}</Text></View>
                 <View style={styles.setValue}><Text style={styles.setLabel}>Peso</Text><Text style={styles.setText}>{value ? `${formatWeight(value.weight)} kg` : isCurrent ? `${formatWeight(weight)} kg` : '—'}</Text></View>
                 <View style={styles.setValue}><Text style={styles.setLabel}>Reps</Text><Text style={styles.setText}>{value?.reps ?? (isCurrent ? reps : '—')}</Text></View>
-                <View style={styles.status}>{value ? <><Ionicons name="checkmark-circle" size={21} color={colors.success} /><Text style={styles.doneText}>Completada</Text></> : isCurrent ? <><View style={styles.liveDot} /><Text style={styles.liveText}>En curso</Text></> : <Text style={styles.pendingText}>Pendiente</Text>}</View>
+                <View style={styles.status}>{value ? <Animated.View entering={ZoomIn.duration(260)} style={styles.statusInline}><Ionicons name="checkmark-circle" size={21} color={colors.success} /><Text style={styles.doneText}>Completada</Text></Animated.View> : isCurrent ? <><View style={styles.liveDot} /><Text style={styles.liveText}>En curso</Text></> : <Text style={styles.pendingText}>Pendiente</Text>}</View>
               </View>
             );
           })}
@@ -201,6 +204,7 @@ const useStyles = createThemedStyleSheet(colors => ({
   setLabel: { color: colors.textDim, fontSize: 10 },
   setText: { color: colors.text, fontWeight: '800', fontSize: 15, marginTop: 3 },
   status: { flex: 1, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 5 },
+  statusInline: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   doneText: { color: colors.success, fontSize: 12 }, liveText: { color: colors.primary, fontSize: 12 }, pendingText: { color: colors.textDim, fontSize: 12 },
   liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.primary },
   restCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },

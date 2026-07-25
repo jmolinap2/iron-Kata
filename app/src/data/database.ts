@@ -5,6 +5,7 @@ import { normalizeAppTheme } from '../types';
 import type {
   AppSnapshot,
   BodyWeight,
+  Exercise,
   FoodEntry,
   PerformedSet,
   PersonalRecord,
@@ -30,7 +31,8 @@ export async function initializeDatabase() {
     PRAGMA foreign_keys = ON;
     CREATE TABLE IF NOT EXISTS app_meta (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS profile (
-      id INTEGER PRIMARY KEY CHECK (id = 1), name TEXT NOT NULL, goal TEXT NOT NULL,
+      id INTEGER PRIMARY KEY CHECK (id = 1), name TEXT NOT NULL, onboarded INTEGER NOT NULL DEFAULT 0,
+      sex TEXT NOT NULL DEFAULT 'Hombre', goal TEXT NOT NULL,
       experience TEXT NOT NULL, available_days INTEGER NOT NULL, duration_minutes INTEGER NOT NULL,
       unit TEXT NOT NULL, theme TEXT NOT NULL, calorie_target INTEGER NOT NULL, protein_target INTEGER NOT NULL
     );
@@ -75,28 +77,41 @@ export async function initializeDatabase() {
 
   const version = await db.getFirstAsync<{ value: string }>("SELECT value FROM app_meta WHERE key = 'schema_version'");
   if (!version) {
-    await seedDatabase(db);
+    await seedProfile(db);
     await db.runAsync("INSERT INTO app_meta(key, value) VALUES ('schema_version', ?)", String(DATABASE_VERSION));
   }
+  await syncCatalog(db);
 }
 
-async function seedDatabase(db: SQLite.SQLiteDatabase) {
-  await db.withTransactionAsync(async () => {
-    await db.runAsync(
-      `INSERT OR IGNORE INTO profile
-       (id, name, goal, experience, available_days, duration_minutes, unit, theme, calorie_target, protein_target)
-       VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      DEFAULT_PROFILE.name,
-      DEFAULT_PROFILE.goal,
-      DEFAULT_PROFILE.experience,
-      DEFAULT_PROFILE.availableDays,
-      DEFAULT_PROFILE.durationMinutes,
-      DEFAULT_PROFILE.unit,
-      DEFAULT_PROFILE.theme,
-      DEFAULT_PROFILE.calorieTarget,
-      DEFAULT_PROFILE.proteinTarget,
-    );
+async function seedProfile(db: SQLite.SQLiteDatabase) {
+  await db.runAsync(
+    `INSERT OR IGNORE INTO profile
+     (id, name, onboarded, sex, goal, experience, available_days, duration_minutes, unit, theme, calorie_target, protein_target)
+     VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    DEFAULT_PROFILE.name,
+    DEFAULT_PROFILE.onboarded ? 1 : 0,
+    DEFAULT_PROFILE.sex,
+    DEFAULT_PROFILE.goal,
+    DEFAULT_PROFILE.experience,
+    DEFAULT_PROFILE.availableDays,
+    DEFAULT_PROFILE.durationMinutes,
+    DEFAULT_PROFILE.unit,
+    DEFAULT_PROFILE.theme,
+    DEFAULT_PROFILE.calorieTarget,
+    DEFAULT_PROFILE.proteinTarget,
+  );
+}
 
+// Corre en cada arranque, no solo el primero: agrega ejercicios y rutinas
+// nuevos que se sumen a seed.ts en futuras versiones, sin necesidad de
+// reinstalar. Los ejercicios del catálogo son INSERT OR IGNORE puro (nunca
+// se editan ni se borran individualmente, es seguro). Las rutinas SOLO se
+// crean si el id todavía no existe — si ya existe, no se tocan sus
+// `routine_exercises`, porque el usuario pudo haber agregado o quitado
+// ejercicios de esa rutina desde el editor y no hay forma de distinguir eso
+// de "nunca la tuvo".
+async function syncCatalog(db: SQLite.SQLiteDatabase) {
+  await db.withTransactionAsync(async () => {
     for (const item of SEED_EXERCISES) {
       await db.runAsync(
         `INSERT OR IGNORE INTO exercises(id, name, muscle, media_key, instructions_json)
@@ -110,6 +125,9 @@ async function seedDatabase(db: SQLite.SQLiteDatabase) {
     }
 
     for (const routine of SEED_ROUTINES) {
+      const existing = await db.getFirstAsync<{ id: string }>('SELECT id FROM routines WHERE id=?', routine.id);
+      if (existing) continue;
+
       await db.runAsync(
         `INSERT OR IGNORE INTO routines(id, name, order_index, muscles_json, is_rest, active)
          VALUES (?, ?, ?, ?, ?, 1)`,
@@ -144,6 +162,7 @@ type ExerciseRow = {
   routine_id: string; position: number; sets: number; rep_min: number; rep_max: number; rest_seconds: number;
   id: string; name: string; muscle: string; media_key: string; instructions_json: string; last_weight: number | null;
 };
+type CatalogRow = { id: string; name: string; muscle: string; media_key: string; instructions_json: string };
 
 export async function loadSnapshot(): Promise<AppSnapshot> {
   const db = await getDatabase();
@@ -159,6 +178,9 @@ export async function loadSnapshot(): Promise<AppSnapshot> {
     FROM routine_exercises re JOIN exercises e ON e.id = re.exercise_id
     ORDER BY re.routine_id, re.position
   `);
+  const catalogRows = await db.getAllAsync<CatalogRow>(
+    'SELECT id, name, muscle, media_key, instructions_json FROM exercises ORDER BY muscle, name',
+  );
   const setRows = await db.getAllAsync<any>('SELECT * FROM performed_sets ORDER BY completed_at');
   const sessionRows = await db.getAllAsync<any>('SELECT * FROM workout_sessions ORDER BY started_at DESC LIMIT 90');
 
@@ -183,6 +205,14 @@ export async function loadSnapshot(): Promise<AppSnapshot> {
       restSeconds: item.rest_seconds,
       lastWeight: item.last_weight,
     })),
+  }));
+
+  const exercises: Exercise[] = catalogRows.map(row => ({
+    id: row.id,
+    name: row.name,
+    muscle: row.muscle as any,
+    mediaKey: row.media_key,
+    instructions: JSON.parse(row.instructions_json),
   }));
 
   const sets: PerformedSet[] = setRows.map(row => ({
@@ -213,6 +243,8 @@ export async function loadSnapshot(): Promise<AppSnapshot> {
   return {
     profile: {
       name: profileRow.name,
+      onboarded: profileRow.onboarded === 1,
+      sex: profileRow.sex === 'Mujer' ? 'Mujer' : 'Hombre',
       goal: profileRow.goal,
       experience: profileRow.experience,
       availableDays: profileRow.available_days,
@@ -223,6 +255,7 @@ export async function loadSnapshot(): Promise<AppSnapshot> {
       proteinTarget: profileRow.protein_target,
     },
     routines,
+    exercises,
     sessions,
     weights: weights.map(row => ({ id: row.id, date: row.date, weight: row.weight })),
     foods: foods.map(row => ({ id: row.id, date: row.date, name: row.name, calories: row.calories, protein: row.protein })),
@@ -241,9 +274,9 @@ export async function loadSnapshot(): Promise<AppSnapshot> {
 export async function saveProfile(profile: Profile) {
   const db = await getDatabase();
   await db.runAsync(
-    `UPDATE profile SET name=?, goal=?, experience=?, available_days=?, duration_minutes=?,
+    `UPDATE profile SET name=?, onboarded=?, sex=?, goal=?, experience=?, available_days=?, duration_minutes=?,
      unit=?, theme=?, calorie_target=?, protein_target=? WHERE id=1`,
-    profile.name, profile.goal, profile.experience, profile.availableDays, profile.durationMinutes,
+    profile.name, profile.onboarded ? 1 : 0, profile.sex, profile.goal, profile.experience, profile.availableDays, profile.durationMinutes,
     profile.unit, profile.theme, profile.calorieTarget, profile.proteinTarget,
   );
 }
@@ -273,14 +306,39 @@ export async function completeSession(sessionId: string, completedAt: string) {
   await db.runAsync("UPDATE workout_sessions SET status='completed', completed_at=? WHERE id=?", completedAt, sessionId);
 }
 
+export async function deleteSession(sessionId: string) {
+  const db = await getDatabase();
+  await db.runAsync('DELETE FROM workout_sessions WHERE id=?', sessionId);
+}
+
+export async function updatePerformedSet(id: string, weight: number, reps: number) {
+  const db = await getDatabase();
+  await db.runAsync('UPDATE performed_sets SET weight=?, reps=? WHERE id=?', weight, reps, id);
+}
+
+export async function deletePerformedSet(id: string) {
+  const db = await getDatabase();
+  await db.runAsync('DELETE FROM performed_sets WHERE id=?', id);
+}
+
 export async function saveBodyWeight(entry: BodyWeight) {
   const db = await getDatabase();
   await db.runAsync('INSERT INTO body_weights(id, date, weight) VALUES (?, ?, ?)', entry.id, entry.date, entry.weight);
 }
 
+export async function deleteBodyWeight(id: string) {
+  const db = await getDatabase();
+  await db.runAsync('DELETE FROM body_weights WHERE id=?', id);
+}
+
 export async function saveFood(entry: FoodEntry) {
   const db = await getDatabase();
   await db.runAsync('INSERT INTO foods(id, date, name, calories, protein) VALUES (?, ?, ?, ?, ?)', entry.id, entry.date, entry.name, entry.calories, entry.protein);
+}
+
+export async function deleteFood(id: string) {
+  const db = await getDatabase();
+  await db.runAsync('DELETE FROM foods WHERE id=?', id);
 }
 
 export async function savePersonalRecord(record: PersonalRecord) {
@@ -344,4 +402,9 @@ export async function replaceRoutine(routine: Routine) {
       );
     }
   });
+}
+
+export async function deleteRoutine(routineId: string) {
+  const db = await getDatabase();
+  await db.runAsync('DELETE FROM routines WHERE id=?', routineId);
 }

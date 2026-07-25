@@ -31,6 +31,7 @@ type BaseColors = {
   warningSurface: string;
   warningBorder: string;
   danger: string;
+  dangerSurface: string;
   text: string;
   textOnImage: string;
   textMuted: string;
@@ -105,6 +106,7 @@ const baseColors: BaseColors = {
   warningSurface: '#19180E',
   warningBorder: '#51420B',
   danger: '#FF5B65',
+  dangerSurface: '#22100F',
   text: '#F6F7F8',
   textOnImage: '#D7DADB',
   textMuted: '#A7ABB0',

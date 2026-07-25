@@ -12,6 +12,7 @@ import { createThemedStyleSheet, getThemePalette, radius, spacing, themeOptions,
 
 type Navigation = NativeStackNavigationProp<RootStackParamList>;
 const levels: Profile['experience'][] = ['Principiante', 'Intermedio', 'Avanzado'];
+const sexes: Profile['sex'][] = ['Hombre', 'Mujer'];
 const goals: ProfileGoal[] = ['Ganar fuerza y masa muscular', 'Perder grasa', 'Mantenimiento', 'Resistencia'];
 
 export function ProfileScreen() {
@@ -30,6 +31,7 @@ export function ProfileScreen() {
 
   const save = async () => { await updateProfile(profile); clearPreviewTheme(); Alert.alert('Perfil guardado', 'Tus preferencias se aplicaron correctamente.'); };
   const cycleLevel = () => setProfile(value => ({ ...value, experience: levels[(levels.indexOf(value.experience) + 1) % levels.length] }));
+  const cycleSex = () => setProfile(value => ({ ...value, sex: sexes[(sexes.indexOf(value.sex) + 1) % sexes.length] }));
   const cycleGoal = () => setProfile(value => ({ ...value, goal: goals[(goals.indexOf(value.goal) + 1) % goals.length] }));
   const selectTheme = (theme: AppTheme) => { setProfile(value => ({ ...value, theme })); setPreviewTheme(theme); };
 
@@ -39,6 +41,7 @@ export function ProfileScreen() {
       <Card>
         <SectionTitle title="Datos básicos" />
         <Field label="Nombre"><TextInput style={styles.input} value={profile.name} onChangeText={name => setProfile(value => ({ ...value, name }))} /></Field>
+        <Field label="Sexo"><Pressable style={styles.select} onPress={cycleSex}><Text style={styles.selectText}>{profile.sex}</Text><Ionicons name="chevron-down" color={colors.textMuted} size={18} /></Pressable></Field>
         <Field label="Objetivo principal"><Pressable style={styles.select} onPress={cycleGoal}><Text style={styles.selectText}>{profile.goal}</Text><Ionicons name="chevron-down" color={colors.textMuted} size={18} /></Pressable></Field>
         <Field label="Nivel de experiencia"><Pressable style={styles.select} onPress={cycleLevel}><Text style={styles.selectText}>{profile.experience}</Text><Ionicons name="chevron-down" color={colors.textMuted} size={18} /></Pressable></Field>
       </Card>
@@ -61,7 +64,11 @@ export function ProfileScreen() {
         </View>
       </Card>
       <ActionButton label="Guardar perfil" icon="save-outline" onPress={() => { void save(); }} />
-      <Card><SectionTitle title="Datos locales" /><Pressable style={styles.link} onPress={() => navigation.navigate('Backup')}><View style={styles.linkIcon}><Ionicons name="archive-outline" size={23} color={colors.primary} /></View><View style={{ flex: 1 }}><Text style={styles.linkTitle}>Respaldos</Text><Text style={styles.linkBody}>Exportar o restaurar todos tus datos</Text></View><Ionicons name="chevron-forward" color={colors.textDim} size={21} /></Pressable></Card>
+      <Card>
+        <SectionTitle title="Datos locales" />
+        <Pressable style={styles.link} onPress={() => navigation.navigate('Backup')}><View style={styles.linkIcon}><Ionicons name="archive-outline" size={23} color={colors.primary} /></View><View style={{ flex: 1 }}><Text style={styles.linkTitle}>Respaldos</Text><Text style={styles.linkBody}>Exportar o restaurar todos tus datos</Text></View><Ionicons name="chevron-forward" color={colors.textDim} size={21} /></Pressable>
+      </Card>
+      <Card><Pressable style={styles.link} onPress={() => navigation.navigate('HowItWorks')}><View style={styles.linkIcon}><Ionicons name="help-circle-outline" size={23} color={colors.primary} /></View><View style={{ flex: 1 }}><Text style={styles.linkTitle}>Cómo funciona Iron Kata</Text><Text style={styles.linkBody}>Explicación de la secuencia, el 1RM y otros conceptos</Text></View><Ionicons name="chevron-forward" color={colors.textDim} size={21} /></Pressable></Card>
     </AppScrollView></Screen>
   );
 }

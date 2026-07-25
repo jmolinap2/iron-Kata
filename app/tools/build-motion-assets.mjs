@@ -5,70 +5,78 @@ import sharp from 'sharp';
 
 const toolDir = path.dirname(fileURLToPath(import.meta.url));
 const appDir = path.resolve(toolDir, '..');
-const repoDir = path.resolve(appDir, '..');
+const sourceDir = path.join(appDir, 'assets', 'exercise_motion', 'source', 'ejercicios_organizados');
 const outputDir = path.join(appDir, 'assets', 'motion');
 
-const sheets = [
-  {
-    file: path.join(repoDir, 'mobile', 'assets', 'exercise_motion', 'source', 'pull_sheet.png'),
-    exercises: ['lat-pulldown', 'barbell-row', 'seated-row', 'barbell-curl'],
-  },
-  {
-    file: path.join(repoDir, 'mobile', 'assets', 'exercise_motion', 'source', 'push_legs_sheet.png'),
-    exercises: ['bench-press', 'back-squat', 'overhead-press', 'lateral-raise'],
-  },
-  {
-    file: path.join(repoDir, 'mobile', 'assets', 'exercise_motion', 'source', 'accessory_sheet.png'),
-    exercises: ['triceps-pushdown', 'leg-press', 'romanian-deadlift', 'hammer-curl'],
-  },
+// Cada entrada convierte un gif animado (estilo diagrama anatómico,
+// organizado por el usuario en ejercicios_organizados/<grupo>/<archivo>) al
+// mismo formato webp que usa el resto del catálogo. Estos gifs ya traen sus
+// propios frames y timing reales — no hay que rebanar grid ni sintetizar
+// ping-pong.
+const clips = [
+  // Ejercicios nuevos (grupos que antes no existían).
+  { file: 'hombros/vuelo-posterior-polea-variante-a.gif', id: 'rear-delt-fly' },
+  { file: 'cuadriceps/extension-cuadriceps-maquina.gif', id: 'leg-extension' },
+  { file: 'pecho/press-inclinado-pecho-maquina.gif', id: 'incline-bench-press' },
+  { file: 'pecho/aperturas-pecho-maquina.gif', id: 'pec-deck-fly' },
+  { file: 'pecho/aperturas-mancuernas.gif', id: 'dumbbell-fly' },
+  { file: 'triceps/fondos-inversos-en-suelo.gif', id: 'bench-dips' },
+  { file: 'isquiotibiales/curl-femoral-tumbado-maquina.gif', id: 'femoral-echado' },
+  { file: 'aductores-cadera/aduccion-cadera-maquina.gif', id: 'hip-adductor' },
+  { file: 'abductores-cadera/abduccion-cadera-maquina.gif', id: 'hip-abductor' },
+  { file: 'pantorrillas/elevacion-talones-maquina.gif', id: 'calf-raise' },
+  { file: 'gluteos/hip-thrust-barra.gif', id: 'hip-thrust' },
+  { file: 'abdomen/abdominales-silla-romana.gif', id: 'roman-chair-situp' },
+  // Migración de los 12 originales al mismo estilo diagrama (coincidencia
+  // exacta de ejercicio en la carpeta del usuario). Sobrescriben el webp
+  // fotorrealista viejo conservando el mismo mediaKey.
+  { file: 'espalda/jalon-dorsal-maquina-agarre-supino.gif', id: 'lat-pulldown' },
+  { file: 'espalda/remo-sentado-polea-barra-v.gif', id: 'seated-row' },
+  { file: 'pecho/press-banca-barra.gif', id: 'bench-press' },
+  { file: 'triceps/jalon-triceps-polea-barra-v.gif', id: 'triceps-pushdown' },
+  { file: 'cuadriceps/prensa-piernas-45-grados-pies-anchos.gif', id: 'leg-press' },
+  { file: 'biceps/curl-predicador-barra.gif', id: 'barbell-curl' },
+  { file: 'biceps/curl-martillo-cruzado-mancuerna.gif', id: 'hammer-curl' },
+  { file: 'hombros/press-militar-de-pie-mancuernas.gif', id: 'overhead-press' },
+  { file: 'hombros/elevaciones-laterales-mancuernas.gif', id: 'lateral-raise' },
+  { file: 'isquiotibiales/peso-muerto-rumano-barra.gif', id: 'romanian-deadlift' },
+  { file: 'cuadriceps/sentadilla-barra.gif', id: 'back-squat' },
+  // barbell-row: sin gif de remo con barra en la carpeta; se usa remo bajo en
+  // polea y el nombre en seed.ts refleja eso. Cambiar si llega el de barra.
+  { file: 'espalda/remo-bajo-sentado-polea.gif', id: 'barbell-row' },
 ];
 
 await fs.mkdir(outputDir, { recursive: true });
 
-for (const sheet of sheets) {
-  const metadata = await sharp(sheet.file).metadata();
-  if (!metadata.width || !metadata.height) {
-    throw new Error(`No se pudo leer ${sheet.file}`);
+for (const clip of clips) {
+  const sourceFile = path.join(sourceDir, clip.file);
+  const metadata = await sharp(sourceFile, { animated: true }).metadata();
+  if (!metadata.width || !metadata.pageHeight || !metadata.pages) {
+    throw new Error(`No se pudo leer ${sourceFile}`);
   }
 
-  const frameWidth = Math.floor(metadata.width / 4);
-  const frameHeight = Math.floor(metadata.height / 4);
-
-  for (let row = 0; row < sheet.exercises.length; row += 1) {
-    const name = sheet.exercises[row];
-    const frames = [];
-
-    for (let column = 0; column < 4; column += 1) {
-      frames.push(
-        await sharp(sheet.file)
-          .extract({
-            left: column * frameWidth,
-            top: row * frameHeight,
-            width: frameWidth,
-            height: frameHeight,
-          })
-          .resize(384, 384, { fit: 'cover' })
-          .webp({ quality: 82, preset: 'photo', effort: 5 })
-          .toBuffer(),
-      );
-    }
-
-    const pingPong = [frames[0], frames[1], frames[2], frames[3], frames[2], frames[1]];
-    await sharp(pingPong, { join: { animated: true } })
-      .webp({
-        quality: 80,
-        preset: 'photo',
-        effort: 5,
-        loop: 0,
-        delay: [360, 300, 300, 420, 300, 300],
-      })
-      .toFile(path.join(outputDir, `${name}.webp`));
-
-    await sharp(frames[0])
-      .resize(256, 176, { fit: 'cover' })
-      .webp({ quality: 78, preset: 'photo', effort: 5 })
-      .toFile(path.join(outputDir, `${name}-thumb.webp`));
+  const frames = [];
+  for (let page = 0; page < metadata.pages; page += 1) {
+    frames.push(
+      await sharp(sourceFile, { page })
+        .resize(384, 384, { fit: 'cover' })
+        .webp({ quality: 82, preset: 'photo', effort: 5 })
+        .toBuffer(),
+    );
   }
+
+  const delay = Array.isArray(metadata.delay) && metadata.delay.length === frames.length
+    ? metadata.delay
+    : frames.map(() => 100);
+
+  await sharp(frames, { join: { animated: true } })
+    .webp({ quality: 80, preset: 'photo', effort: 5, loop: 0, delay })
+    .toFile(path.join(outputDir, `${clip.id}.webp`));
+
+  await sharp(frames[0])
+    .resize(256, 176, { fit: 'cover' })
+    .webp({ quality: 78, preset: 'photo', effort: 5 })
+    .toFile(path.join(outputDir, `${clip.id}-thumb.webp`));
 }
 
-console.log(`Generadas ${sheets.length * 4} animaciones y miniaturas en ${outputDir}`);
+console.log(`Generadas ${clips.length} animaciones y miniaturas en ${outputDir}`);

@@ -18,3 +18,36 @@ export function estimateOneRepMax(weight: number, reps: number) {
 export function isNewRecord(estimate: number, previousBest: number) {
   return estimate > previousBest + 0.05;
 }
+
+export type MuscleProgress = {
+  muscle: string;
+  currentBest: number;
+  previousBest: number;
+  deltaPercent: number;
+};
+
+type MuscleSet = { muscle: string; weight: number; reps: number };
+
+function bestEstimateByMuscle(sets: MuscleSet[]) {
+  const best = new Map<string, number>();
+  for (const set of sets) {
+    const estimate = estimateOneRepMax(set.weight, set.reps);
+    best.set(set.muscle, Math.max(best.get(set.muscle) ?? 0, estimate));
+  }
+  return best;
+}
+
+// Compara el mejor 1RM estimado por grupo muscular entre dos ventanas de
+// tiempo (semana actual vs. semana anterior). Solo incluye músculos con
+// datos en ambas ventanas — sin una línea base, un delta no dice nada.
+export function muscleProgress(current: MuscleSet[], previous: MuscleSet[]): MuscleProgress[] {
+  const currentBest = bestEstimateByMuscle(current);
+  const previousBest = bestEstimateByMuscle(previous);
+  const results: MuscleProgress[] = [];
+  for (const [muscle, currentValue] of currentBest) {
+    const previousValue = previousBest.get(muscle);
+    if (!previousValue) continue;
+    results.push({ muscle, currentBest: currentValue, previousBest: previousValue, deltaPercent: (currentValue - previousValue) / previousValue * 100 });
+  }
+  return results.sort((a, b) => b.deltaPercent - a.deltaPercent);
+}

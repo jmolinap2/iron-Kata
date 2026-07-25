@@ -3,6 +3,11 @@ import { create } from 'zustand';
 import {
   completeSession,
   createSession,
+  deleteBodyWeight as deleteBodyWeightRow,
+  deleteFood as deleteFoodRow,
+  deletePerformedSet as deletePerformedSetRow,
+  deleteRoutine as deleteRoutineRow,
+  deleteSession as deleteSessionRow,
   exportBackup,
   importBackup,
   initializeDatabase,
@@ -13,6 +18,7 @@ import {
   savePerformedSet,
   savePersonalRecord,
   saveProfile,
+  updatePerformedSet as updatePerformedSetRow,
 } from '../data/database';
 import type {
   ActiveWorkout,
@@ -30,13 +36,14 @@ import { estimateOneRepMax, isNewRecord, nextRoutine } from '../domain/rules';
 const makeId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 const EMPTY_SNAPSHOT: AppSnapshot = {
   profile: {
-    name: 'Atleta', goal: 'Ganar fuerza y masa muscular', experience: 'Principiante', availableDays: 3,
+    name: '', onboarded: false, sex: 'Hombre', goal: 'Ganar fuerza y masa muscular', experience: 'Principiante', availableDays: 3,
     durationMinutes: 60, unit: 'kg', theme: 'Lima', calorieTarget: 2300, proteinTarget: 180,
   },
-  routines: [], sessions: [], weights: [], foods: [], records: [],
+  routines: [], exercises: [], sessions: [], weights: [], foods: [], records: [],
 };
 
 type WorkoutSummary = { session: WorkoutSession; newRecords: PersonalRecord[] };
+export type PastSetEntry = { exerciseId: string; exerciseName: string; weight: number; reps: number };
 
 type AppStore = AppSnapshot & {
   initialized: boolean;
@@ -53,10 +60,17 @@ type AppStore = AppSnapshot & {
   previousExercise: () => void;
   stopRest: () => void;
   finishWorkout: () => Promise<WorkoutSummary>;
+  logPastWorkout: (routineId: string, daysAgo: number, entries: PastSetEntry[]) => Promise<void>;
+  deleteSession: (id: string) => Promise<void>;
+  updateSet: (id: string, weight: number, reps: number) => Promise<void>;
+  deleteSet: (id: string) => Promise<void>;
   updateProfile: (profile: Profile) => Promise<void>;
   addBodyWeight: (weight: number) => Promise<void>;
+  deleteBodyWeightEntry: (id: string) => Promise<void>;
   addFood: (name: string, calories: number, protein: number) => Promise<void>;
+  deleteFoodEntry: (id: string) => Promise<void>;
   saveRoutine: (routine: Routine) => Promise<void>;
+  deleteRoutine: (id: string) => Promise<void>;
   createBackup: () => Promise<string>;
   restoreBackup: (raw: string) => Promise<void>;
   clearSummary: () => void;
@@ -216,6 +230,60 @@ export const useAppStore = create<AppStore>((set, get) => ({
     return summary;
   },
 
+  logPastWorkout: async (routineId, daysAgo, entries) => {
+    const routine = get().routines.find(item => item.id === routineId);
+    if (!routine || !entries.length) return;
+    const date = new Date();
+    date.setDate(date.getDate() - daysAgo);
+    const completedAt = date.toISOString();
+    const session: WorkoutSession = {
+      id: makeId('session'), routineId: routine.id, routineName: routine.name,
+      startedAt: completedAt, completedAt, status: 'completed', isQuick: false, sets: [],
+    };
+    await createSession({ ...session, completedAt: null, status: 'active' });
+
+    let records = get().records;
+    const counters: Record<string, number> = {};
+    for (const entry of entries) {
+      const setNumber = counters[entry.exerciseId] = (counters[entry.exerciseId] ?? 0) + 1;
+      const item: PerformedSet = {
+        id: makeId('set'), sessionId: session.id, exerciseId: entry.exerciseId,
+        exerciseName: entry.exerciseName, setNumber, weight: entry.weight, reps: entry.reps, completedAt,
+      };
+      await savePerformedSet(item);
+
+      const estimatedOneRepMax = estimateOneRepMax(entry.weight, entry.reps);
+      const best = records.filter(record => record.exerciseId === entry.exerciseId)
+        .reduce((max, record) => Math.max(max, record.estimatedOneRepMax), 0);
+      if (isNewRecord(estimatedOneRepMax, best)) {
+        const record: PersonalRecord = {
+          id: makeId('record'), exerciseId: entry.exerciseId, exerciseName: entry.exerciseName,
+          weight: entry.weight, reps: entry.reps, estimatedOneRepMax, achievedAt: completedAt,
+        };
+        await savePersonalRecord(record);
+        records = [record, ...records];
+      }
+    }
+    await completeSession(session.id, completedAt);
+    const snapshot = await loadSnapshot();
+    set({ ...snapshot });
+  },
+
+  deleteSession: async id => {
+    await deleteSessionRow(id);
+    set({ sessions: get().sessions.filter(item => item.id !== id) });
+  },
+
+  updateSet: async (id, weight, reps) => {
+    await updatePerformedSetRow(id, weight, reps);
+    set({ sessions: get().sessions.map(session => ({ ...session, sets: session.sets.map(item => item.id === id ? { ...item, weight, reps } : item) })) });
+  },
+
+  deleteSet: async id => {
+    await deletePerformedSetRow(id);
+    set({ sessions: get().sessions.map(session => ({ ...session, sets: session.sets.filter(item => item.id !== id) })) });
+  },
+
   updateProfile: async profile => {
     await saveProfile(profile);
     set({ profile });
@@ -227,14 +295,30 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set({ weights: [entry, ...get().weights] });
   },
 
+  deleteBodyWeightEntry: async id => {
+    await deleteBodyWeightRow(id);
+    set({ weights: get().weights.filter(item => item.id !== id) });
+  },
+
   addFood: async (name, calories, protein) => {
     const entry: FoodEntry = { id: makeId('food'), date: new Date().toISOString(), name, calories, protein };
     await saveFood(entry);
     set({ foods: [entry, ...get().foods] });
   },
 
+  deleteFoodEntry: async id => {
+    await deleteFoodRow(id);
+    set({ foods: get().foods.filter(item => item.id !== id) });
+  },
+
   saveRoutine: async routine => {
     await replaceRoutine(routine);
+    const snapshot = await loadSnapshot();
+    set({ ...snapshot });
+  },
+
+  deleteRoutine: async id => {
+    await deleteRoutineRow(id);
     const snapshot = await loadSnapshot();
     set({ ...snapshot });
   },
@@ -257,4 +341,17 @@ export const weekSessions = (sessions: WorkoutSession[]) => {
   since.setDate(since.getDate() - 6);
   since.setHours(0, 0, 0, 0);
   return sessions.filter(item => item.status === 'completed' && new Date(item.completedAt ?? item.startedAt) >= since);
+};
+
+export const previousWeekSessions = (sessions: WorkoutSession[]) => {
+  const currentStart = new Date();
+  currentStart.setDate(currentStart.getDate() - 6);
+  currentStart.setHours(0, 0, 0, 0);
+  const previousStart = new Date(currentStart);
+  previousStart.setDate(previousStart.getDate() - 7);
+  return sessions.filter(item => {
+    if (item.status !== 'completed') return false;
+    const date = new Date(item.completedAt ?? item.startedAt);
+    return date >= previousStart && date < currentStart;
+  });
 };
