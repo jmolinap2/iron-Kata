@@ -37,3 +37,14 @@ iron-kata-*.png
 # Prototipos heredados descartados (no forman parte del producto vigente)
 /mobile/
 /legacy-canvas-demo/
+
+# Material fuente de animaciones (gifs con licencia de origen incierto,
+# nunca deben terminar en un commit de este repo público)
+/app/assets/exercise_motion/source/
+*.zip
+
+# Animaciones finales de ejercicios: se generan localmente con
+# `pnpm assets:motion` a partir del material fuente de arriba. Quedan fuera
+# del repo público a propósito — hace falta el material fuente (fuera de
+# git) para regenerarlas, no alcanza con clonar el repo.
+/app/assets/motion/
