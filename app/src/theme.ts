@@ -1,5 +1,8 @@
-import { createContext, createElement, useCallback, useContext, useMemo, useState, type PropsWithChildren } from 'react';
-import { StyleSheet, type ImageStyle, type TextStyle, type ViewStyle } from 'react-native';
+import { createContext, createElement, Fragment, useCallback, useContext, useEffect, useMemo, useRef, useState, type PropsWithChildren, type RefObject } from 'react';
+import { StyleSheet, View, type ImageStyle, type TextStyle, type ViewStyle } from 'react-native';
+import { BlurTargetView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 
 import { resolveVisibleStyle, resolveVisibleTheme, type AppStyle, type AppTheme } from './types';
 
@@ -101,6 +104,31 @@ const accentPalettes: Record<AppStyle, Record<AppTheme, AccentPalette>> = {
       gradientStart: '#FFC15A', gradientEnd: '#E89416', ...heroOverlay.Ámbar,
     },
   },
+  // Vidrio: mismos acentos vívidos que Oscuro (se lucen sobre paneles
+  // esmerilados), pero los tonos "de fondo" del acento (badges, bordes) son
+  // translúcidos en vez de sólidos para que el vidrio debajo siga viéndose.
+  Vidrio: {
+    Lima: {
+      primary: '#A7F20A', primaryStrong: '#8DDB00', primaryDark: 'rgba(167,242,10,0.16)',
+      primaryBorder: 'rgba(167,242,10,0.35)', primarySoftBackground: 'rgba(167,242,10,0.08)',
+      gradientStart: '#B8FF18', gradientEnd: '#8CE600', ...heroOverlay.Lima,
+    },
+    Esmeralda: {
+      primary: '#35E87A', primaryStrong: '#16C861', primaryDark: 'rgba(53,232,122,0.16)',
+      primaryBorder: 'rgba(53,232,122,0.35)', primarySoftBackground: 'rgba(53,232,122,0.08)',
+      gradientStart: '#4DF091', gradientEnd: '#1BCB67', ...heroOverlay.Esmeralda,
+    },
+    Cobalto: {
+      primary: '#4AA8FF', primaryStrong: '#2187E8', primaryDark: 'rgba(74,168,255,0.16)',
+      primaryBorder: 'rgba(74,168,255,0.35)', primarySoftBackground: 'rgba(74,168,255,0.08)',
+      gradientStart: '#65B8FF', gradientEnd: '#2B8EF0', ...heroOverlay.Cobalto,
+    },
+    Ámbar: {
+      primary: '#FFC247', primaryStrong: '#F29C1F', primaryDark: 'rgba(255,194,71,0.16)',
+      primaryBorder: 'rgba(255,194,71,0.35)', primarySoftBackground: 'rgba(255,194,71,0.08)',
+      gradientStart: '#FFD36B', gradientEnd: '#F5A623', ...heroOverlay.Ámbar,
+    },
+  },
 };
 
 const baseColorsByStyle: Record<AppStyle, BaseColors> = {
@@ -124,6 +152,20 @@ const baseColorsByStyle: Record<AppStyle, BaseColors> = {
     text: '#14161A', textOnImage: '#F6F7F8', textMuted: '#6B7280', textDim: '#9CA3AF',
     black: '#050505', white: '#FFFFFF',
   },
+  // Base oscura + tokens de "superficie" translúcidos: cualquier contenedor
+  // que use colors.surface/navigation/etc directamente ya se ve vidrioso sin
+  // código extra. Card y la barra de pestañas suman además un BlurView real
+  // (ver ui.tsx / AppNavigator.tsx) que desenfoca lo que hay detrás.
+  Vidrio: {
+    background: '#0A0D11', backgroundSoft: '#0D1115', surface: 'rgba(255,255,255,0.06)',
+    surfaceRaised: 'rgba(255,255,255,0.10)', surfaceMuted: 'rgba(255,255,255,0.04)', navigation: 'rgba(9,12,15,0.5)',
+    border: 'rgba(255,255,255,0.16)', borderSoft: 'rgba(255,255,255,0.09)',
+    success: '#7CE000', successSurface: 'rgba(124,224,0,0.12)', successBorder: 'rgba(124,224,0,0.32)',
+    warning: '#FFC928', warningSurface: 'rgba(255,201,40,0.12)', warningBorder: 'rgba(255,201,40,0.32)',
+    danger: '#FF5B65', dangerSurface: 'rgba(255,91,101,0.14)',
+    text: '#F6F7F8', textOnImage: '#F6F7F8', textMuted: '#B7BBC0', textDim: '#83898F',
+    black: '#050505', white: '#FFFFFF',
+  },
 };
 
 export const themeOptions = [
@@ -136,6 +178,7 @@ export const themeOptions = [
 export const styleOptions = [
   { name: 'Oscuro', label: 'Oscuro', description: 'El look original de Iron Kata.' },
   { name: 'Bento', label: 'Bento claro', description: 'Tarjetas blancas, fondo claro, estilo dashboard.' },
+  { name: 'Vidrio', label: 'Vidrio', description: 'Paneles esmerilados translúcidos, estilo Apple.' },
 ] satisfies { name: AppStyle; label: string; description: string }[];
 
 export function getThemePalette(theme: AppTheme, style: AppStyle = 'Oscuro'): AccentPalette {
@@ -196,6 +239,68 @@ export function useThemePreferences() {
   const { theme, previewTheme, setPreviewTheme, clearPreviewTheme, style, previewStyle, setPreviewStyle, clearPreviewStyle } = useThemeContext();
   return { theme, previewTheme, setPreviewTheme, clearPreviewTheme, style, previewStyle, setPreviewStyle, clearPreviewStyle };
 }
+
+// El vidrio esmerilado en Android (`dimezisBlurView`) desenfoca un
+// `BlurTargetView` con nombre, no "lo que está atrás" en pantalla — por eso
+// todos los BlurView de la app (Card, HelpSheet, la barra de pestañas)
+// comparten esta única referencia, montada una sola vez arriba de todo, con
+// un "mesh" de manchas de color con deriva lenta que le dan textura viva al
+// desenfoque (el blur nativo ya recalcula cada frame de por sí en Android,
+// así que animar el fondo no le suma costo real).
+const GlassBackdropContext = createContext<RefObject<View | null> | null>(null);
+
+type BlobSpec = { key: string; color: string; size: number; top?: number | `${number}%`; bottom?: number | `${number}%`; left?: number | `${number}%`; right?: number | `${number}%`; opacity: number; driftX: number; driftY: number; duration: number };
+
+function GlassBlob({ color, size, top, bottom, left, right, opacity, driftX, driftY, duration }: BlobSpec) {
+  const t = useSharedValue(0);
+  useEffect(() => {
+    t.value = withRepeat(withTiming(1, { duration, easing: Easing.inOut(Easing.sin) }), -1, true);
+  }, [duration, t]);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: (t.value - 0.5) * 2 * driftX },
+      { translateY: (t.value - 0.5) * 2 * driftY },
+    ],
+  }));
+  return createElement(
+    Animated.View,
+    { style: [{ position: 'absolute', width: size, height: size, borderRadius: size / 2, top, bottom, left, right, opacity }, animatedStyle] },
+    createElement(LinearGradient, { colors: [color, 'transparent'], style: StyleSheet.absoluteFill }),
+  );
+}
+
+export function GlassBackdropProvider({ children }: PropsWithChildren) {
+  const target = useRef<View>(null);
+  const colors = useTheme();
+  const { style } = useThemePreferences();
+  const isGlass = style === 'Vidrio';
+  const blobs: BlobSpec[] = [
+    { key: 'a', color: colors.gradientStart, size: 420, top: -150, right: -130, opacity: 0.55, driftX: 26, driftY: 18, duration: 13000 },
+    { key: 'b', color: colors.gradientEnd, size: 380, bottom: -130, left: -140, opacity: 0.45, driftX: -22, driftY: 24, duration: 15500 },
+    { key: 'c', color: colors.primary, size: 300, top: '38%', left: -150, opacity: 0.32, driftX: 18, driftY: -20, duration: 11000 },
+    { key: 'd', color: colors.primaryStrong, size: 260, bottom: '22%', right: -120, opacity: 0.3, driftX: -16, driftY: 16, duration: 17000 },
+  ];
+  return createElement(
+    GlassBackdropContext.Provider,
+    { value: target },
+    createElement(View, { style: styles.glassRoot }, [
+      createElement(
+        BlurTargetView,
+        { key: 'target', ref: target, style: StyleSheet.absoluteFill, pointerEvents: 'none' as const },
+        isGlass ? blobs.map(blob => createElement(GlassBlob, blob)) : null,
+      ),
+      createElement(Fragment, { key: 'content' }, children),
+    ]),
+  );
+}
+
+export function useGlassBackdropTarget(): RefObject<View | null> | undefined {
+  return useContext(GlassBackdropContext) ?? undefined;
+}
+
+const styles = StyleSheet.create({
+  glassRoot: { flex: 1 },
+});
 
 export function createThemedStyleSheet<T extends Record<string, StyleValue>>(
   createStyles: (colors: ThemeColors) => T,

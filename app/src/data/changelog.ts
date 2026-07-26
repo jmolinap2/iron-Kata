@@ -38,6 +38,12 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: 'Nuevo estilo visual: Bento claro',
     summary: 'Desde Perfil → Estilo visual podés cambiar entre el look oscuro original y un estilo Bento claro (tarjetas blancas, fondo claro, tipo dashboard) — independiente del acento de color que ya elegías.',
   },
+  {
+    version: 5,
+    date: '25 de julio',
+    title: 'Nuevo estilo visual: Vidrio',
+    summary: 'Un tercer estilo, ahora con vidrio esmerilado real (no solo colores translúcidos): tarjetas, la barra inferior y las ayudas contextuales desenfocan de verdad lo que hay detrás, con destellos de color ambientales. Elegilo desde Perfil → Estilo visual.',
+  },
 ];
 
 export const LATEST_CHANGELOG_VERSION = CHANGELOG.reduce((max, item) => Math.max(max, item.version), 0);

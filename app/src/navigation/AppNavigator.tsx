@@ -2,9 +2,11 @@ import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { StyleSheet, View } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useTheme, useThemePreferences } from '../theme';
+import { useGlassBackdropTarget, useTheme, useThemePreferences } from '../theme';
 import type { MainTabsParamList, RootStackParamList } from './types';
 import { HomeScreen } from '../screens/HomeScreen';
 import { TrainingScreen } from '../screens/TrainingScreen';
@@ -31,6 +33,9 @@ const tabIcons: Record<keyof MainTabsParamList, keyof typeof Ionicons.glyphMap> 
 function MainTabs() {
   const insets = useSafeAreaInsets();
   const colors = useTheme();
+  const { style } = useThemePreferences();
+  const blurTarget = useGlassBackdropTarget();
+  const isGlass = style === 'Vidrio';
   const safeBottom = Math.max(insets.bottom, 8);
 
   return (
@@ -42,14 +47,26 @@ function MainTabs() {
         tabBarInactiveTintColor: colors.textDim,
         tabBarHideOnKeyboard: true,
         tabBarStyle: {
-          backgroundColor: colors.navigation,
-          borderTopColor: colors.borderSoft,
+          backgroundColor: isGlass ? 'transparent' : colors.navigation,
+          borderTopColor: isGlass ? colors.primaryBorder : colors.borderSoft,
+          position: isGlass ? 'absolute' : undefined,
           height: 66 + safeBottom,
           paddingTop: 9,
           paddingBottom: safeBottom,
         },
+        tabBarBackground: isGlass
+          ? () => <BlurView intensity={55} tint="dark" blurMethod="dimezisBlurView" blurTarget={blurTarget} style={StyleSheet.absoluteFill} />
+          : undefined,
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-        tabBarIcon: ({ color, size }) => <Ionicons name={tabIcons[route.name]} color={color} size={size + 2} />,
+        tabBarIcon: ({ color, size, focused }) => (
+          isGlass && focused ? (
+            <View style={{ width: 46, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primarySoftBackground, borderWidth: 1, borderColor: colors.primaryBorder }}>
+              <Ionicons name={tabIcons[route.name]} color={color} size={size + 2} />
+            </View>
+          ) : (
+            <Ionicons name={tabIcons[route.name]} color={color} size={size + 2} />
+          )
+        ),
       })}
     >
       <Tabs.Screen name="Inicio" component={HomeScreen} />

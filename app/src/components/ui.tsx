@@ -1,11 +1,12 @@
 import { useState, type PropsWithChildren, type ReactNode } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInDown, FadeOut, SlideInDown, SlideOutDown, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { createThemedStyleSheet, radius, shadow, spacing, typography, useTheme } from '../theme';
+import { createThemedStyleSheet, radius, shadow, spacing, typography, useGlassBackdropTarget, useTheme, useThemePreferences } from '../theme';
 
 export function Screen({ children, style }: PropsWithChildren<{ style?: StyleProp<ViewStyle> }>) {
   const styles = useStyles();
@@ -23,6 +24,17 @@ export function AppScrollView({ children, contentStyle }: PropsWithChildren<{ co
 
 export function Card({ children, style, delay = 0 }: PropsWithChildren<{ style?: StyleProp<ViewStyle>; delay?: number }>) {
   const styles = useStyles();
+  const { style: appStyle } = useThemePreferences();
+  const blurTarget = useGlassBackdropTarget();
+  if (appStyle === 'Vidrio') {
+    return (
+      <Animated.View entering={FadeInDown.delay(delay).duration(360)} style={[styles.cardGlass, style]}>
+        <BlurView intensity={55} tint="dark" blurMethod="dimezisBlurView" blurTarget={blurTarget} style={StyleSheet.absoluteFill} />
+        <LinearGradient colors={['rgba(255,255,255,0.14)', 'rgba(255,255,255,0)']} style={styles.cardGlassSheen} pointerEvents="none" />
+        {children}
+      </Animated.View>
+    );
+  }
   return (
     <Animated.View entering={FadeInDown.delay(delay).duration(360)} style={[styles.card, style]}>
       {children}
@@ -118,6 +130,8 @@ export function InfoHint({ title, body, icon = 'information-circle', tint }: { t
 export function HelpSheet({ visible, onClose, title, body, icon = 'information-circle' }: { visible: boolean; onClose: () => void; title: string; body: string; icon?: keyof typeof Ionicons.glyphMap }) {
   const colors = useTheme();
   const styles = useStyles();
+  const { style: appStyle } = useThemePreferences();
+  const blurTarget = useGlassBackdropTarget();
   if (!visible) return null;
   return (
     <Modal transparent visible={visible} animationType="none" statusBarTranslucent onRequestClose={onClose}>
@@ -125,7 +139,13 @@ export function HelpSheet({ visible, onClose, title, body, icon = 'information-c
         <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(180)} style={StyleSheet.absoluteFill}>
           <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         </Animated.View>
-        <Animated.View entering={SlideInDown.duration(280)} exiting={SlideOutDown.duration(200)} style={styles.sheetCard}>
+        <Animated.View entering={SlideInDown.duration(280)} exiting={SlideOutDown.duration(200)} style={[styles.sheetCard, appStyle === 'Vidrio' && styles.sheetCardGlass]}>
+          {appStyle === 'Vidrio' ? (
+            <>
+              <BlurView intensity={55} tint="dark" blurMethod="dimezisBlurView" blurTarget={blurTarget} style={StyleSheet.absoluteFill} />
+              <LinearGradient colors={['rgba(255,255,255,0.12)', 'rgba(255,255,255,0)']} style={styles.cardGlassSheen} pointerEvents="none" />
+            </>
+          ) : null}
           <View style={styles.sheetHandle} />
           <View style={styles.sheetIcon}><Ionicons name={icon} size={26} color={colors.primary} /></View>
           <Text style={styles.sheetTitle}>{title}</Text>
@@ -168,6 +188,8 @@ const useStyles = createThemedStyleSheet(colors => ({
   screen: { flex: 1, backgroundColor: colors.background },
   scrollContent: { paddingHorizontal: spacing.lg, paddingBottom: 118, gap: spacing.lg },
   card: { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, padding: spacing.lg, overflow: 'hidden', ...shadow },
+  cardGlass: { borderRadius: radius.lg, borderWidth: 1.5, borderColor: colors.primaryBorder, padding: spacing.lg, overflow: 'hidden', ...shadow },
+  cardGlassSheen: { position: 'absolute', top: 0, left: 0, right: 0, height: '55%' },
   button: { minHeight: 58, borderRadius: radius.lg, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.primary },
   buttonOutline: { backgroundColor: colors.backgroundSoft },
   buttonMuted: { backgroundColor: colors.surfaceRaised, borderColor: colors.border },
@@ -191,7 +213,8 @@ const useStyles = createThemedStyleSheet(colors => ({
   pill: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center', borderColor: colors.border, borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   pillText: { color: colors.text, fontSize: typography.small, fontWeight: '700' },
   sheetOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(2,3,4,0.68)' },
-  sheetCard: { backgroundColor: colors.surface, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, borderWidth: 1, borderColor: colors.border, borderBottomWidth: 0, padding: spacing.xl, paddingBottom: spacing.xxl, alignItems: 'center' },
+  sheetCard: { backgroundColor: colors.surface, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, borderWidth: 1, borderColor: colors.border, borderBottomWidth: 0, padding: spacing.xl, paddingBottom: spacing.xxl, alignItems: 'center', overflow: 'hidden' },
+  sheetCardGlass: { backgroundColor: 'transparent', borderColor: colors.primaryBorder, borderWidth: 1.5 },
   sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border, marginBottom: spacing.lg },
   sheetIcon: { width: 54, height: 54, borderRadius: 18, backgroundColor: colors.primaryDark, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md },
   sheetTitle: { color: colors.text, fontSize: typography.subheading, fontWeight: '900', textAlign: 'center' },

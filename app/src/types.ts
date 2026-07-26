@@ -27,7 +27,7 @@ export function resolveVisibleTheme(savedTheme: AppTheme, previewTheme: AppTheme
 
 // "Tema" (arriba) es el acento de color. "Estilo" es el lenguaje visual —
 // independiente entre sí, se combinan (ej. Bento + Cobalto).
-export const APP_STYLES = ['Oscuro', 'Bento'] as const;
+export const APP_STYLES = ['Oscuro', 'Bento', 'Vidrio'] as const;
 export type AppStyle = typeof APP_STYLES[number];
 
 export function normalizeAppStyle(value: unknown): AppStyle {

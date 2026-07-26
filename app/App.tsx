@@ -12,7 +12,7 @@ import { WhatsNewScreen } from './src/screens/WhatsNewScreen';
 import { LATEST_CHANGELOG_VERSION } from './src/data/changelog';
 import { useAppStore } from './src/store/useAppStore';
 import type { Exercise, Profile } from './src/types';
-import { createThemedStyleSheet, ThemeProvider, useTheme, useThemePreferences } from './src/theme';
+import { createThemedStyleSheet, GlassBackdropProvider, ThemeProvider, useTheme, useThemePreferences } from './src/theme';
 
 export default function App() {
   const initialize = useAppStore(state => state.initialize);
@@ -27,14 +27,16 @@ export default function App() {
 
   return (
     <ThemeProvider savedTheme={profile.theme} savedStyle={profile.style}>
-      <AppContent
-        initialized={initialized}
-        error={error}
-        profile={profile}
-        exercises={exercises}
-        onOnboardingComplete={updateProfile}
-        onChangelogSeen={() => { void markChangelogSeen(LATEST_CHANGELOG_VERSION); }}
-      />
+      <GlassBackdropProvider>
+        <AppContent
+          initialized={initialized}
+          error={error}
+          profile={profile}
+          exercises={exercises}
+          onOnboardingComplete={updateProfile}
+          onChangelogSeen={() => { void markChangelogSeen(LATEST_CHANGELOG_VERSION); }}
+        />
+      </GlassBackdropProvider>
     </ThemeProvider>
   );
 }

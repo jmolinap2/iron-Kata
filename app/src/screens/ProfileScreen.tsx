@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -49,13 +50,15 @@ export function ProfileScreen() {
       <Card><SectionTitle title="Disponibilidad" /><Counter label="Días disponibles" value={profile.availableDays} suffix="días" min={1} max={7} step={1} onChange={availableDays => setProfile(value => ({ ...value, availableDays }))} /><Counter label="Duración aproximada" value={profile.durationMinutes} suffix="min" min={30} max={120} step={5} onChange={durationMinutes => setProfile(value => ({ ...value, durationMinutes }))} /></Card>
       <Card><SectionTitle title="Preferencias" /><Pressable style={styles.preference} onPress={() => setProfile(value => ({ ...value, unit: value.unit === 'kg' ? 'lb' : 'kg' }))}><View><Text style={styles.preferenceLabel}>Unidad de peso</Text><Text style={styles.preferenceHint}>Se usa en todas las series y récords</Text></View><Text style={styles.preferenceValue}>{profile.unit}</Text></Pressable></Card>
       <Card>
-        <SectionTitle title="Estilo visual" />
-        <Text style={styles.personalizationIntro}>Cambia el lenguaje visual completo de la app — independiente del acento de color de abajo.</Text>
+        <SectionTitle title="Apariencia" />
+        <Text style={styles.personalizationIntro}>La vista previa se aplica al instante en toda la app. Guarda para conservarla.</Text>
+        <Text style={styles.subheading}>Estilo</Text>
         <View style={styles.themeList}>
           {styleOptions.map(option => (
             <StyleChoice
               key={option.name}
               style={option.name}
+              accent={profile.theme}
               label={option.label}
               description={option.description}
               selected={profile.style === option.name}
@@ -63,10 +66,7 @@ export function ProfileScreen() {
             />
           ))}
         </View>
-      </Card>
-      <Card>
-        <SectionTitle title="Personalización" />
-        <Text style={styles.personalizationIntro}>La vista previa se aplica al instante a botones, navegación, gráficas, bordes activos y el bloque principal. Guarda para conservarla.</Text>
+        <Text style={[styles.subheading, { marginTop: spacing.lg }]}>Acento de color</Text>
         <View style={styles.themeList}>
           {themeOptions.map(option => (
             <ThemeChoice
@@ -121,10 +121,11 @@ function ThemeChoice({ theme, label, description, selected, onPress }: { theme: 
   );
 }
 
-function StyleChoice({ style, label, description, selected, onPress }: { style: AppStyle; label: string; description: string; selected: boolean; onPress: () => void }) {
+function StyleChoice({ style, accent, label, description, selected, onPress }: { style: AppStyle; accent: AppTheme; label: string; description: string; selected: boolean; onPress: () => void }) {
   const colors = useTheme();
   const styles = useStyles();
   const base = getStyleBaseColors(style);
+  const palette = getThemePalette(accent, style);
   return (
     <Pressable
       accessibilityRole="radio"
@@ -132,8 +133,14 @@ function StyleChoice({ style, label, description, selected, onPress }: { style: 
       onPress={onPress}
       style={[styles.themeChoice, selected && { borderColor: colors.primary, backgroundColor: colors.primarySoftBackground }]}
     >
-      <View style={[styles.themePreview, { backgroundColor: base.background, borderColor: base.border }]}>
-        <View style={[styles.styleSwatchCard, { backgroundColor: base.surface, borderColor: base.border }]} />
+      <View style={[styles.themePreview, { backgroundColor: base.background, borderColor: base.border, overflow: 'hidden' }]}>
+        {style === 'Vidrio' ? (
+          <LinearGradient colors={[palette.gradientStart, palette.gradientEnd]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.styleSwatchGlass}>
+            <View style={styles.styleSwatchGlassSheen} />
+          </LinearGradient>
+        ) : (
+          <View style={[styles.styleSwatchCard, { backgroundColor: base.surface, borderColor: base.border }]} />
+        )}
       </View>
       <View style={{ flex: 1 }}>
         <Text style={styles.themeLabel}>{label}</Text>
@@ -150,10 +157,13 @@ const useStyles = createThemedStyleSheet(colors => ({
   counter: { minHeight: 74, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }, counterControls: { flexDirection: 'row', alignItems: 'center', gap: spacing.md }, round: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }, counterValue: { color: colors.text, minWidth: 72, textAlign: 'center', fontWeight: '800' },
   preference: { minHeight: 66, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }, preferenceLabel: { color: colors.text, fontWeight: '700' }, preferenceHint: { color: colors.textMuted, fontSize: 11, marginTop: 3 }, preferenceValue: { color: colors.primary, textTransform: 'uppercase', fontWeight: '900' },
   personalizationIntro: { color: colors.textMuted, fontSize: 12, lineHeight: 18, marginTop: spacing.sm },
-  themeList: { gap: spacing.sm, marginTop: spacing.lg },
+  subheading: { color: colors.textDim, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.6, marginTop: spacing.lg, marginBottom: spacing.sm },
+  themeList: { gap: spacing.sm },
   themeChoice: { minHeight: 76, flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.backgroundSoft },
   themePreview: { width: 48, height: 48, borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   styleSwatchCard: { width: 30, height: 22, borderRadius: 7, borderWidth: 1 },
+  styleSwatchGlass: { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' },
+  styleSwatchGlassSheen: { position: 'absolute', top: 0, left: 0, right: 0, height: '50%', backgroundColor: 'rgba(255,255,255,0.25)' },
   themeDotLarge: { width: 21, height: 21, borderRadius: 11 },
   themeDotSmall: { position: 'absolute', width: 10, height: 10, borderRadius: 5, right: 8, top: 8 },
   themeLabel: { color: colors.text, fontSize: 14, fontWeight: '800' },
