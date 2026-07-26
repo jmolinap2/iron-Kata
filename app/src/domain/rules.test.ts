@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { estimateOneRepMax, isNewRecord, muscleProgress, nextRoutine } from './rules';
-import type { Routine, WorkoutSession } from '../types';
+import { estimateOneRepMax, exerciseDurationsMs, isNewRecord, muscleProgress, nextRoutine, trainingStreak } from './rules';
+import type { PerformedSet, Routine, WorkoutSession } from '../types';
 
 const routine = (id: string, orderIndex: number, isRest = false): Routine => ({
   id, name: id, orderIndex, isRest, active: true,
@@ -77,5 +77,66 @@ describe('progreso de fuerza por grupo muscular', () => {
     const previous = [{ muscle: 'Pecho', weight: 70, reps: 6 }];
     const result = muscleProgress(current, previous);
     expect(result[0].currentBest).toBeCloseTo(estimateOneRepMax(80, 4), 5);
+  });
+});
+
+describe('duración por ejercicio', () => {
+  const performedSet = (exerciseId: string, secondsAfterStart: number): PerformedSet => ({
+    id: `${exerciseId}-${secondsAfterStart}`, sessionId: 's1', exerciseId, exerciseName: exerciseId,
+    setNumber: 1, weight: 20, reps: 10,
+    completedAt: new Date(2026, 0, 1, 10, 0, secondsAfterStart).toISOString(),
+  });
+
+  it('reparte el tiempo entre el inicio y cada serie según su hora', () => {
+    const startedAt = new Date(2026, 0, 1, 10, 0, 0).toISOString();
+    const sets = [performedSet('a', 60), performedSet('a', 90), performedSet('b', 150)];
+    const durations = exerciseDurationsMs(startedAt, sets);
+    expect(durations.a).toBe(90 * 1000);
+    expect(durations.b).toBe(60 * 1000);
+  });
+
+  it('la suma total coincide con el tiempo entre el inicio y la última serie', () => {
+    const startedAt = new Date(2026, 0, 1, 10, 0, 0).toISOString();
+    const sets = [performedSet('a', 40), performedSet('b', 100), performedSet('a', 130)];
+    const durations = exerciseDurationsMs(startedAt, sets);
+    const total = Object.values(durations).reduce((sum, value) => sum + value, 0);
+    expect(total).toBe(130 * 1000);
+  });
+
+  it('no depende del orden en que vengan las series', () => {
+    const startedAt = new Date(2026, 0, 1, 10, 0, 0).toISOString();
+    const inOrder = exerciseDurationsMs(startedAt, [performedSet('a', 60), performedSet('b', 120)]);
+    const reversed = exerciseDurationsMs(startedAt, [performedSet('b', 120), performedSet('a', 60)]);
+    expect(reversed).toEqual(inOrder);
+  });
+});
+
+describe('racha de entrenamiento', () => {
+  const completedOn = (daysAgo: number, now: Date): WorkoutSession => {
+    const date = new Date(now); date.setDate(date.getDate() - daysAgo);
+    const iso = date.toISOString();
+    return { id: `s-${daysAgo}`, routineId: 'r', routineName: 'r', startedAt: iso, completedAt: iso, status: 'completed', isQuick: false, sets: [] };
+  };
+
+  it('cuenta días consecutivos terminando hoy', () => {
+    const now = new Date(2026, 0, 10, 18, 0, 0);
+    const sessions = [completedOn(0, now), completedOn(1, now), completedOn(2, now)];
+    expect(trainingStreak(sessions, now)).toBe(3);
+  });
+
+  it('no rompe la racha si hoy todavía no se entrenó', () => {
+    const now = new Date(2026, 0, 10, 8, 0, 0);
+    const sessions = [completedOn(1, now), completedOn(2, now)];
+    expect(trainingStreak(sessions, now)).toBe(2);
+  });
+
+  it('se corta en el primer día sin sesión', () => {
+    const now = new Date(2026, 0, 10, 18, 0, 0);
+    const sessions = [completedOn(0, now), completedOn(1, now), completedOn(3, now)];
+    expect(trainingStreak(sessions, now)).toBe(2);
+  });
+
+  it('es 0 sin historial', () => {
+    expect(trainingStreak([], new Date())).toBe(0);
   });
 });

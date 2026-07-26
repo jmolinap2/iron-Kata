@@ -8,35 +8,60 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppErrorBoundary } from './src/components/AppErrorBoundary';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
+import { WhatsNewScreen } from './src/screens/WhatsNewScreen';
+import { LATEST_CHANGELOG_VERSION } from './src/data/changelog';
 import { useAppStore } from './src/store/useAppStore';
-import type { Profile } from './src/types';
-import { createThemedStyleSheet, ThemeProvider, useTheme } from './src/theme';
+import type { Exercise, Profile } from './src/types';
+import { createThemedStyleSheet, ThemeProvider, useTheme, useThemePreferences } from './src/theme';
 
 export default function App() {
   const initialize = useAppStore(state => state.initialize);
   const initialized = useAppStore(state => state.initialized);
   const error = useAppStore(state => state.error);
   const profile = useAppStore(state => state.profile);
+  const exercises = useAppStore(state => state.exercises);
   const updateProfile = useAppStore(state => state.updateProfile);
+  const markChangelogSeen = useAppStore(state => state.markChangelogSeen);
 
   useEffect(() => { void initialize(); }, [initialize]);
 
   return (
-    <ThemeProvider savedTheme={profile.theme}>
-      <AppContent initialized={initialized} error={error} profile={profile} onOnboardingComplete={updateProfile} />
+    <ThemeProvider savedTheme={profile.theme} savedStyle={profile.style}>
+      <AppContent
+        initialized={initialized}
+        error={error}
+        profile={profile}
+        exercises={exercises}
+        onOnboardingComplete={updateProfile}
+        onChangelogSeen={() => { void markChangelogSeen(LATEST_CHANGELOG_VERSION); }}
+      />
     </ThemeProvider>
   );
 }
 
-function AppContent({ initialized, error, profile, onOnboardingComplete }: { initialized: boolean; error: string | null; profile: Profile; onOnboardingComplete: (profile: Profile) => void }) {
+function AppContent({ initialized, error, profile, exercises, onOnboardingComplete, onChangelogSeen }: {
+  initialized: boolean; error: string | null; profile: Profile; exercises: Exercise[];
+  onOnboardingComplete: (profile: Profile) => void; onChangelogSeen: () => void;
+}) {
   const colors = useTheme();
   const styles = useStyles();
+  const { style } = useThemePreferences();
+  const statusBarStyle = style === 'Bento' ? 'dark' : 'light';
 
   if (initialized && !profile.onboarded) {
     return (
       <SafeAreaProvider>
         <OnboardingScreen base={profile} onComplete={onOnboardingComplete} />
-        <StatusBar style="light" />
+        <StatusBar style={statusBarStyle} />
+      </SafeAreaProvider>
+    );
+  }
+
+  if (initialized && profile.onboarded && profile.lastSeenChangelog < LATEST_CHANGELOG_VERSION) {
+    return (
+      <SafeAreaProvider>
+        <WhatsNewScreen sinceVersion={profile.lastSeenChangelog} exercises={exercises} onDismiss={onChangelogSeen} />
+        <StatusBar style={statusBarStyle} />
       </SafeAreaProvider>
     );
   }
@@ -49,7 +74,7 @@ function AppContent({ initialized, error, profile, onOnboardingComplete }: { ini
           <Text style={styles.loadingTitle}>IRON KATA</Text>
           {error ? <Text style={styles.error}>{error}</Text> : <ActivityIndicator color={colors.primary} size="large" />}
         </View>
-        <StatusBar style="light" />
+        <StatusBar style={statusBarStyle} />
       </SafeAreaProvider>
     );
   }
@@ -58,7 +83,7 @@ function AppContent({ initialized, error, profile, onOnboardingComplete }: { ini
     <AppErrorBoundary>
       <SafeAreaProvider>
         <AppNavigator />
-        <StatusBar style="light" />
+        <StatusBar style={statusBarStyle} />
       </SafeAreaProvider>
     </AppErrorBoundary>
   );

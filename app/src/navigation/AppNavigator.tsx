@@ -1,10 +1,10 @@
-import { NavigationContainer, DarkTheme } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useTheme } from '../theme';
+import { useTheme, useThemePreferences } from '../theme';
 import type { MainTabsParamList, RootStackParamList } from './types';
 import { HomeScreen } from '../screens/HomeScreen';
 import { TrainingScreen } from '../screens/TrainingScreen';
@@ -63,9 +63,11 @@ function MainTabs() {
 
 export function AppNavigator() {
   const colors = useTheme();
+  const { style } = useThemePreferences();
+  const base = style === 'Bento' ? DefaultTheme : DarkTheme;
   const navigationTheme = {
-    ...DarkTheme,
-    colors: { ...DarkTheme.colors, primary: colors.primary, background: colors.background, card: colors.background, border: colors.border, text: colors.text },
+    ...base,
+    colors: { ...base.colors, primary: colors.primary, background: colors.background, card: colors.background, border: colors.border, text: colors.text },
   };
 
   return (

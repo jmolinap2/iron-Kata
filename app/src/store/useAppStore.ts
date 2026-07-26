@@ -12,6 +12,7 @@ import {
   importBackup,
   initializeDatabase,
   loadSnapshot,
+  markChangelogSeen as markChangelogSeenRow,
   replaceRoutine,
   saveBodyWeight,
   saveFood,
@@ -36,8 +37,8 @@ import { estimateOneRepMax, isNewRecord, nextRoutine } from '../domain/rules';
 const makeId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 const EMPTY_SNAPSHOT: AppSnapshot = {
   profile: {
-    name: '', onboarded: false, sex: 'Hombre', goal: 'Ganar fuerza y masa muscular', experience: 'Principiante', availableDays: 3,
-    durationMinutes: 60, unit: 'kg', theme: 'Lima', calorieTarget: 2300, proteinTarget: 180,
+    name: '', onboarded: false, lastSeenChangelog: 0, sex: 'Hombre', goal: 'Ganar fuerza y masa muscular', experience: 'Principiante', availableDays: 3,
+    durationMinutes: 60, unit: 'kg', theme: 'Lima', style: 'Oscuro', calorieTarget: 2300, proteinTarget: 180,
   },
   routines: [], exercises: [], sessions: [], weights: [], foods: [], records: [],
 };
@@ -53,7 +54,7 @@ type AppStore = AppSnapshot & {
   lastSummary: WorkoutSummary | null;
   initialize: () => Promise<void>;
   reload: () => Promise<void>;
-  startRoutine: (routineId: string, quick?: boolean) => Promise<void>;
+  startRoutine: (routineId: string, quick?: boolean, startIndex?: number) => Promise<void>;
   completeRest: (routineId: string) => Promise<void>;
   completeSet: (weight: number, reps: number) => Promise<PerformedSet>;
   nextExercise: () => void;
@@ -65,6 +66,7 @@ type AppStore = AppSnapshot & {
   updateSet: (id: string, weight: number, reps: number) => Promise<void>;
   deleteSet: (id: string) => Promise<void>;
   updateProfile: (profile: Profile) => Promise<void>;
+  markChangelogSeen: (version: number) => Promise<void>;
   addBodyWeight: (weight: number) => Promise<void>;
   deleteBodyWeightEntry: (id: string) => Promise<void>;
   addFood: (name: string, calories: number, protein: number) => Promise<void>;
@@ -121,7 +123,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set({ ...snapshot, activeWorkout: get().activeWorkout ?? rebuildActiveWorkout(snapshot) });
   },
 
-  startRoutine: async (routineId, quick = false) => {
+  startRoutine: async (routineId, quick = false, startIndex = 0) => {
     const source = get().routines.find(item => item.id === routineId);
     if (!source || source.isRest) return;
     const routine: Routine = quick
@@ -138,9 +140,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
       sets: [],
     };
     await createSession(session);
+    const exerciseIndex = Math.min(Math.max(startIndex, 0), Math.max(routine.exercises.length - 1, 0));
     set({
       sessions: [session, ...get().sessions],
-      activeWorkout: { sessionId: session.id, routine, exerciseIndex: 0, completedSets: {}, restEndsAt: null },
+      activeWorkout: { sessionId: session.id, routine, exerciseIndex, completedSets: {}, restEndsAt: null },
       lastSummary: null,
     });
   },
@@ -287,6 +290,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
   updateProfile: async profile => {
     await saveProfile(profile);
     set({ profile });
+  },
+
+  markChangelogSeen: async version => {
+    await markChangelogSeenRow(version);
+    set({ profile: { ...get().profile, lastSeenChangelog: version } });
   },
 
   addBodyWeight: async weight => {

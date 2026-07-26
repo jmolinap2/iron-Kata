@@ -7,8 +7,8 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { ActionButton, AppScrollView, Card, Header, Screen, SectionTitle } from '../components/ui';
 import { useAppStore } from '../store/useAppStore';
-import type { AppTheme, Profile, ProfileGoal } from '../types';
-import { createThemedStyleSheet, getThemePalette, radius, spacing, themeOptions, useTheme, useThemePreferences } from '../theme';
+import type { AppStyle, AppTheme, Profile, ProfileGoal } from '../types';
+import { createThemedStyleSheet, getStyleBaseColors, getThemePalette, radius, spacing, styleOptions, themeOptions, useTheme, useThemePreferences } from '../theme';
 
 type Navigation = NativeStackNavigationProp<RootStackParamList>;
 const levels: Profile['experience'][] = ['Principiante', 'Intermedio', 'Avanzado'];
@@ -19,21 +19,22 @@ export function ProfileScreen() {
   const navigation = useNavigation<Navigation>();
   const colors = useTheme();
   const styles = useStyles();
-  const { setPreviewTheme, clearPreviewTheme } = useThemePreferences();
+  const { setPreviewTheme, clearPreviewTheme, setPreviewStyle, clearPreviewStyle } = useThemePreferences();
   const stored = useAppStore(state => state.profile);
   const updateProfile = useAppStore(state => state.updateProfile);
   const [profile, setProfile] = useState(stored);
 
   useFocusEffect(useCallback(() => {
     setProfile(stored);
-    return clearPreviewTheme;
-  }, [clearPreviewTheme, stored]));
+    return () => { clearPreviewTheme(); clearPreviewStyle(); };
+  }, [clearPreviewTheme, clearPreviewStyle, stored]));
 
-  const save = async () => { await updateProfile(profile); clearPreviewTheme(); Alert.alert('Perfil guardado', 'Tus preferencias se aplicaron correctamente.'); };
+  const save = async () => { await updateProfile(profile); clearPreviewTheme(); clearPreviewStyle(); Alert.alert('Perfil guardado', 'Tus preferencias se aplicaron correctamente.'); };
   const cycleLevel = () => setProfile(value => ({ ...value, experience: levels[(levels.indexOf(value.experience) + 1) % levels.length] }));
   const cycleSex = () => setProfile(value => ({ ...value, sex: sexes[(sexes.indexOf(value.sex) + 1) % sexes.length] }));
   const cycleGoal = () => setProfile(value => ({ ...value, goal: goals[(goals.indexOf(value.goal) + 1) % goals.length] }));
   const selectTheme = (theme: AppTheme) => { setProfile(value => ({ ...value, theme })); setPreviewTheme(theme); };
+  const selectStyle = (style: AppStyle) => { setProfile(value => ({ ...value, style })); setPreviewStyle(style); };
 
   return (
     <Screen><AppScrollView>
@@ -47,6 +48,22 @@ export function ProfileScreen() {
       </Card>
       <Card><SectionTitle title="Disponibilidad" /><Counter label="Días disponibles" value={profile.availableDays} suffix="días" min={1} max={7} step={1} onChange={availableDays => setProfile(value => ({ ...value, availableDays }))} /><Counter label="Duración aproximada" value={profile.durationMinutes} suffix="min" min={30} max={120} step={5} onChange={durationMinutes => setProfile(value => ({ ...value, durationMinutes }))} /></Card>
       <Card><SectionTitle title="Preferencias" /><Pressable style={styles.preference} onPress={() => setProfile(value => ({ ...value, unit: value.unit === 'kg' ? 'lb' : 'kg' }))}><View><Text style={styles.preferenceLabel}>Unidad de peso</Text><Text style={styles.preferenceHint}>Se usa en todas las series y récords</Text></View><Text style={styles.preferenceValue}>{profile.unit}</Text></Pressable></Card>
+      <Card>
+        <SectionTitle title="Estilo visual" />
+        <Text style={styles.personalizationIntro}>Cambia el lenguaje visual completo de la app — independiente del acento de color de abajo.</Text>
+        <View style={styles.themeList}>
+          {styleOptions.map(option => (
+            <StyleChoice
+              key={option.name}
+              style={option.name}
+              label={option.label}
+              description={option.description}
+              selected={profile.style === option.name}
+              onPress={() => selectStyle(option.name)}
+            />
+          ))}
+        </View>
+      </Card>
       <Card>
         <SectionTitle title="Personalización" />
         <Text style={styles.personalizationIntro}>La vista previa se aplica al instante a botones, navegación, gráficas, bordes activos y el bloque principal. Guarda para conservarla.</Text>
@@ -79,7 +96,8 @@ function Counter({ label, value, suffix, min, max, step, onChange }: { label: st
 function ThemeChoice({ theme, label, description, selected, onPress }: { theme: AppTheme; label: string; description: string; selected: boolean; onPress: () => void }) {
   const colors = useTheme();
   const styles = useStyles();
-  const palette = getThemePalette(theme);
+  const { style } = useThemePreferences();
+  const palette = getThemePalette(theme, style);
   return (
     <Pressable
       accessibilityRole="radio"
@@ -103,6 +121,29 @@ function ThemeChoice({ theme, label, description, selected, onPress }: { theme: 
   );
 }
 
+function StyleChoice({ style, label, description, selected, onPress }: { style: AppStyle; label: string; description: string; selected: boolean; onPress: () => void }) {
+  const colors = useTheme();
+  const styles = useStyles();
+  const base = getStyleBaseColors(style);
+  return (
+    <Pressable
+      accessibilityRole="radio"
+      accessibilityState={{ checked: selected }}
+      onPress={onPress}
+      style={[styles.themeChoice, selected && { borderColor: colors.primary, backgroundColor: colors.primarySoftBackground }]}
+    >
+      <View style={[styles.themePreview, { backgroundColor: base.background, borderColor: base.border }]}>
+        <View style={[styles.styleSwatchCard, { backgroundColor: base.surface, borderColor: base.border }]} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.themeLabel}>{label}</Text>
+        <Text style={styles.themeDescription}>{description}</Text>
+      </View>
+      <Ionicons name={selected ? 'checkmark-circle' : 'ellipse-outline'} color={selected ? colors.primary : colors.textDim} size={24} />
+    </Pressable>
+  );
+}
+
 const useStyles = createThemedStyleSheet(colors => ({
   field: { marginTop: spacing.lg }, fieldLabel: { color: colors.textMuted, fontSize: 12, marginBottom: spacing.sm }, input: { minHeight: 50, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.backgroundSoft, color: colors.text, paddingHorizontal: spacing.md, fontSize: 15 },
   select: { minHeight: 50, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.backgroundSoft, paddingHorizontal: spacing.md }, selectText: { color: colors.text, fontWeight: '700' },
@@ -112,6 +153,7 @@ const useStyles = createThemedStyleSheet(colors => ({
   themeList: { gap: spacing.sm, marginTop: spacing.lg },
   themeChoice: { minHeight: 76, flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.backgroundSoft },
   themePreview: { width: 48, height: 48, borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  styleSwatchCard: { width: 30, height: 22, borderRadius: 7, borderWidth: 1 },
   themeDotLarge: { width: 21, height: 21, borderRadius: 11 },
   themeDotSmall: { position: 'absolute', width: 10, height: 10, borderRadius: 5, right: 8, top: 8 },
   themeLabel: { color: colors.text, fontSize: 14, fontWeight: '800' },

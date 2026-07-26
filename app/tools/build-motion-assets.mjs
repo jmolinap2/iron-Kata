@@ -44,6 +44,19 @@ const clips = [
   // barbell-row: sin gif de remo con barra en la carpeta; se usa remo bajo en
   // polea y el nombre en seed.ts refleja eso. Cambiar si llega el de barra.
   { file: 'espalda/remo-bajo-sentado-polea.gif', id: 'barbell-row' },
+  // Dataset de 200 ejercicios de máquina/cable (exercises-machine-men-first-200-512).
+  { file: 'antebrazos/prensa-de-mano.gif', id: 'gripper-hands' },
+  { file: 'antebrazos/curl-muneca-polea.gif', id: 'wrist-curl' },
+  { file: 'trapecios/encogimiento-polea.gif', id: 'cable-shrug' },
+  { file: 'gluteos/pull-through-polea.gif', id: 'cable-pull-through' },
+  { file: 'pantorrillas/elevacion-talones-inclinado.gif', id: 'donkey-calf-raise' },
+  { file: 'abdomen/crunch-de-pie-polea.gif', id: 'standing-crunch' },
+  { file: 'abdomen/giro-torso-polea.gif', id: 'cable-twist' },
+  { file: 'biceps/curl-polea.gif', id: 'cable-curl' },
+  { file: 'biceps/curl-concentracion-polea.gif', id: 'concentration-curl' },
+  { file: 'triceps/extension-polea-arriba.gif', id: 'overhead-triceps-extension' },
+  { file: 'triceps/patada-triceps-polea.gif', id: 'triceps-kickback' },
+  { file: 'hombros/elevacion-frontal-polea.gif', id: 'front-raise' },
 ];
 
 await fs.mkdir(outputDir, { recursive: true });

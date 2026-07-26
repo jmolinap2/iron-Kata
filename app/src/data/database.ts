@@ -1,7 +1,7 @@
 import * as SQLite from 'expo-sqlite';
 
 import { DEFAULT_PROFILE, SEED_EXERCISES, SEED_ROUTINES } from './seed';
-import { normalizeAppTheme } from '../types';
+import { normalizeAppStyle, normalizeAppTheme } from '../types';
 import type {
   AppSnapshot,
   BodyWeight,
@@ -24,6 +24,19 @@ export const getDatabase = () => {
   return databasePromise;
 };
 
+// SQLite no tiene `ADD COLUMN IF NOT EXISTS`. Este es el patrón real para
+// evolucionar el esquema de una instalación existente sin reinstalar: se
+// intenta el ALTER, y si la columna ya existe (el único error esperado acá),
+// se ignora. Cualquier otro error sigue propagándose.
+async function addColumnIfMissing(db: SQLite.SQLiteDatabase, table: string, column: string, definition: string) {
+  try {
+    await db.execAsync(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!message.includes('duplicate column name')) throw error;
+  }
+}
+
 export async function initializeDatabase() {
   const db = await getDatabase();
   await db.execAsync(`
@@ -32,9 +45,11 @@ export async function initializeDatabase() {
     CREATE TABLE IF NOT EXISTS app_meta (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS profile (
       id INTEGER PRIMARY KEY CHECK (id = 1), name TEXT NOT NULL, onboarded INTEGER NOT NULL DEFAULT 0,
+      last_seen_changelog INTEGER NOT NULL DEFAULT 0,
       sex TEXT NOT NULL DEFAULT 'Hombre', goal TEXT NOT NULL,
       experience TEXT NOT NULL, available_days INTEGER NOT NULL, duration_minutes INTEGER NOT NULL,
-      unit TEXT NOT NULL, theme TEXT NOT NULL, calorie_target INTEGER NOT NULL, protein_target INTEGER NOT NULL
+      unit TEXT NOT NULL, theme TEXT NOT NULL, style TEXT NOT NULL DEFAULT 'Oscuro',
+      calorie_target INTEGER NOT NULL, protein_target INTEGER NOT NULL
     );
     CREATE TABLE IF NOT EXISTS routines (
       id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, order_index INTEGER NOT NULL,
@@ -49,6 +64,14 @@ export async function initializeDatabase() {
       exercise_id TEXT NOT NULL REFERENCES exercises(id), position INTEGER NOT NULL,
       sets INTEGER NOT NULL, rep_min INTEGER NOT NULL, rep_max INTEGER NOT NULL, rest_seconds INTEGER NOT NULL,
       PRIMARY KEY (routine_id, exercise_id)
+    );
+    CREATE TABLE IF NOT EXISTS routine_exercise_removed (
+      routine_id TEXT NOT NULL REFERENCES routines(id) ON DELETE CASCADE,
+      exercise_id TEXT NOT NULL,
+      PRIMARY KEY (routine_id, exercise_id)
+    );
+    CREATE TABLE IF NOT EXISTS routine_removed (
+      routine_id TEXT PRIMARY KEY NOT NULL
     );
     CREATE TABLE IF NOT EXISTS workout_sessions (
       id TEXT PRIMARY KEY NOT NULL, routine_id TEXT NOT NULL, routine_name TEXT NOT NULL,
@@ -74,6 +97,8 @@ export async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_sets_session ON performed_sets(session_id);
     CREATE INDEX IF NOT EXISTS idx_weights_date ON body_weights(date DESC);
   `);
+  await addColumnIfMissing(db, 'profile', 'last_seen_changelog', 'INTEGER NOT NULL DEFAULT 0');
+  await addColumnIfMissing(db, 'profile', 'style', "TEXT NOT NULL DEFAULT 'Oscuro'");
 
   const version = await db.getFirstAsync<{ value: string }>("SELECT value FROM app_meta WHERE key = 'schema_version'");
   if (!version) {
@@ -86,10 +111,11 @@ export async function initializeDatabase() {
 async function seedProfile(db: SQLite.SQLiteDatabase) {
   await db.runAsync(
     `INSERT OR IGNORE INTO profile
-     (id, name, onboarded, sex, goal, experience, available_days, duration_minutes, unit, theme, calorie_target, protein_target)
-     VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, name, onboarded, last_seen_changelog, sex, goal, experience, available_days, duration_minutes, unit, theme, style, calorie_target, protein_target)
+     VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     DEFAULT_PROFILE.name,
     DEFAULT_PROFILE.onboarded ? 1 : 0,
+    DEFAULT_PROFILE.lastSeenChangelog,
     DEFAULT_PROFILE.sex,
     DEFAULT_PROFILE.goal,
     DEFAULT_PROFILE.experience,
@@ -97,6 +123,7 @@ async function seedProfile(db: SQLite.SQLiteDatabase) {
     DEFAULT_PROFILE.durationMinutes,
     DEFAULT_PROFILE.unit,
     DEFAULT_PROFILE.theme,
+    DEFAULT_PROFILE.style,
     DEFAULT_PROFILE.calorieTarget,
     DEFAULT_PROFILE.proteinTarget,
   );
@@ -105,11 +132,12 @@ async function seedProfile(db: SQLite.SQLiteDatabase) {
 // Corre en cada arranque, no solo el primero: agrega ejercicios y rutinas
 // nuevos que se sumen a seed.ts en futuras versiones, sin necesidad de
 // reinstalar. Los ejercicios del catálogo son INSERT OR IGNORE puro (nunca
-// se editan ni se borran individualmente, es seguro). Las rutinas SOLO se
-// crean si el id todavía no existe — si ya existe, no se tocan sus
-// `routine_exercises`, porque el usuario pudo haber agregado o quitado
-// ejercicios de esa rutina desde el editor y no hay forma de distinguir eso
-// de "nunca la tuvo".
+// se editan ni se borran individualmente, es seguro). Para rutinas que ya
+// existen, solo se agregan los ejercicios de seed.ts que todavía no están
+// Y que el usuario no borró explícitamente antes (ver `routine_exercise_removed`,
+// escrito por `replaceRoutine` al guardar desde el editor) — así una
+// actualización real puede sumar contenido nuevo sin pisar lo que el usuario
+// ya personalizó, sin necesitar reinstalar.
 async function syncCatalog(db: SQLite.SQLiteDatabase) {
   await db.withTransactionAsync(async () => {
     for (const item of SEED_EXERCISES) {
@@ -126,25 +154,57 @@ async function syncCatalog(db: SQLite.SQLiteDatabase) {
 
     for (const routine of SEED_ROUTINES) {
       const existing = await db.getFirstAsync<{ id: string }>('SELECT id FROM routines WHERE id=?', routine.id);
-      if (existing) continue;
+      const wasDeleted = await db.getFirstAsync<{ routine_id: string }>('SELECT routine_id FROM routine_removed WHERE routine_id=?', routine.id);
+      if (!existing && wasDeleted) continue;
 
-      await db.runAsync(
-        `INSERT OR IGNORE INTO routines(id, name, order_index, muscles_json, is_rest, active)
-         VALUES (?, ?, ?, ?, ?, 1)`,
-        routine.id,
-        routine.name,
-        routine.orderIndex,
-        JSON.stringify(routine.muscles),
-        routine.isRest ? 1 : 0,
-      );
-      for (const item of routine.exercises) {
+      if (!existing) {
         await db.runAsync(
-          `INSERT OR IGNORE INTO routine_exercises
+          `INSERT OR IGNORE INTO routines(id, name, order_index, muscles_json, is_rest, active)
+           VALUES (?, ?, ?, ?, ?, 1)`,
+          routine.id,
+          routine.name,
+          routine.orderIndex,
+          JSON.stringify(routine.muscles),
+          routine.isRest ? 1 : 0,
+        );
+        for (const item of routine.exercises) {
+          await db.runAsync(
+            `INSERT OR IGNORE INTO routine_exercises
+             (routine_id, exercise_id, position, sets, rep_min, rep_max, rest_seconds)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            routine.id,
+            item.id,
+            item.position,
+            item.sets,
+            item.repMin,
+            item.repMax,
+            item.restSeconds,
+          );
+        }
+        continue;
+      }
+
+      const present = await db.getAllAsync<{ exercise_id: string; position: number }>(
+        'SELECT exercise_id, position FROM routine_exercises WHERE routine_id=?',
+        routine.id,
+      );
+      const presentIds = new Set(present.map(row => row.exercise_id));
+      const removed = await db.getAllAsync<{ exercise_id: string }>(
+        'SELECT exercise_id FROM routine_exercise_removed WHERE routine_id=?',
+        routine.id,
+      );
+      const removedIds = new Set(removed.map(row => row.exercise_id));
+      let nextPosition = present.reduce((max, row) => Math.max(max, row.position), -1) + 1;
+
+      for (const item of routine.exercises) {
+        if (presentIds.has(item.id) || removedIds.has(item.id)) continue;
+        await db.runAsync(
+          `INSERT INTO routine_exercises
            (routine_id, exercise_id, position, sets, rep_min, rep_max, rest_seconds)
            VALUES (?, ?, ?, ?, ?, ?, ?)`,
           routine.id,
           item.id,
-          item.position,
+          nextPosition++,
           item.sets,
           item.repMin,
           item.repMax,
@@ -244,6 +304,7 @@ export async function loadSnapshot(): Promise<AppSnapshot> {
     profile: {
       name: profileRow.name,
       onboarded: profileRow.onboarded === 1,
+      lastSeenChangelog: profileRow.last_seen_changelog ?? 0,
       sex: profileRow.sex === 'Mujer' ? 'Mujer' : 'Hombre',
       goal: profileRow.goal,
       experience: profileRow.experience,
@@ -251,6 +312,7 @@ export async function loadSnapshot(): Promise<AppSnapshot> {
       durationMinutes: profileRow.duration_minutes,
       unit: profileRow.unit,
       theme: normalizeAppTheme(profileRow.theme),
+      style: normalizeAppStyle(profileRow.style),
       calorieTarget: profileRow.calorie_target,
       proteinTarget: profileRow.protein_target,
     },
@@ -271,13 +333,18 @@ export async function loadSnapshot(): Promise<AppSnapshot> {
   };
 }
 
+export async function markChangelogSeen(version: number) {
+  const db = await getDatabase();
+  await db.runAsync('UPDATE profile SET last_seen_changelog=? WHERE id=1', version);
+}
+
 export async function saveProfile(profile: Profile) {
   const db = await getDatabase();
   await db.runAsync(
     `UPDATE profile SET name=?, onboarded=?, sex=?, goal=?, experience=?, available_days=?, duration_minutes=?,
-     unit=?, theme=?, calorie_target=?, protein_target=? WHERE id=1`,
+     unit=?, theme=?, style=?, calorie_target=?, protein_target=? WHERE id=1`,
     profile.name, profile.onboarded ? 1 : 0, profile.sex, profile.goal, profile.experience, profile.availableDays, profile.durationMinutes,
-    profile.unit, profile.theme, profile.calorieTarget, profile.proteinTarget,
+    profile.unit, profile.theme, profile.style, profile.calorieTarget, profile.proteinTarget,
   );
 }
 
@@ -352,8 +419,8 @@ export async function savePersonalRecord(record: PersonalRecord) {
 }
 
 const BACKUP_TABLES = [
-  'profile', 'routines', 'exercises', 'routine_exercises', 'workout_sessions',
-  'performed_sets', 'body_weights', 'foods', 'personal_records',
+  'profile', 'routines', 'exercises', 'routine_exercises', 'routine_exercise_removed',
+  'routine_removed', 'workout_sessions', 'performed_sets', 'body_weights', 'foods', 'personal_records',
 ] as const;
 
 export async function exportBackup() {
@@ -401,10 +468,30 @@ export async function replaceRoutine(routine: Routine) {
         routine.id, item.id, item.position, item.sets, item.repMin, item.repMax, item.restSeconds,
       );
     }
+
+    // Si esta rutina viene de seed.ts, registra qué ejercicios de fábrica el
+    // usuario sacó (o volvió a poner) para que syncCatalog() nunca los
+    // resucite ni los vuelva a quitar solo.
+    const seedRoutine = SEED_ROUTINES.find(item => item.id === routine.id);
+    if (seedRoutine) {
+      const keptIds = new Set(routine.exercises.map(item => item.id));
+      for (const seedItem of seedRoutine.exercises) {
+        if (keptIds.has(seedItem.id)) {
+          await db.runAsync('DELETE FROM routine_exercise_removed WHERE routine_id=? AND exercise_id=?', routine.id, seedItem.id);
+        } else {
+          await db.runAsync('INSERT OR IGNORE INTO routine_exercise_removed(routine_id, exercise_id) VALUES (?, ?)', routine.id, seedItem.id);
+        }
+      }
+    }
   });
 }
 
 export async function deleteRoutine(routineId: string) {
   const db = await getDatabase();
-  await db.runAsync('DELETE FROM routines WHERE id=?', routineId);
+  await db.withTransactionAsync(async () => {
+    await db.runAsync('DELETE FROM routines WHERE id=?', routineId);
+    if (SEED_ROUTINES.some(item => item.id === routineId)) {
+      await db.runAsync('INSERT OR IGNORE INTO routine_removed(routine_id) VALUES (?)', routineId);
+    }
+  });
 }

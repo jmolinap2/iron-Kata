@@ -8,6 +8,8 @@ export type MuscleGroup =
   | 'Pantorrillas'
   | 'Glúteos'
   | 'Abdomen'
+  | 'Antebrazos'
+  | 'Trapecios'
   | 'Descanso';
 
 export type WeightUnit = 'kg' | 'lb';
@@ -21,6 +23,19 @@ export function normalizeAppTheme(value: unknown): AppTheme {
 
 export function resolveVisibleTheme(savedTheme: AppTheme, previewTheme: AppTheme | null): AppTheme {
   return previewTheme ?? savedTheme;
+}
+
+// "Tema" (arriba) es el acento de color. "Estilo" es el lenguaje visual —
+// independiente entre sí, se combinan (ej. Bento + Cobalto).
+export const APP_STYLES = ['Oscuro', 'Bento'] as const;
+export type AppStyle = typeof APP_STYLES[number];
+
+export function normalizeAppStyle(value: unknown): AppStyle {
+  return APP_STYLES.includes(value as AppStyle) ? value as AppStyle : 'Oscuro';
+}
+
+export function resolveVisibleStyle(savedStyle: AppStyle, previewStyle: AppStyle | null): AppStyle {
+  return previewStyle ?? savedStyle;
 }
 
 export type Exercise = {
@@ -98,6 +113,7 @@ export type ProfileGoal = 'Ganar fuerza y masa muscular' | 'Perder grasa' | 'Man
 export type Profile = {
   name: string;
   onboarded: boolean;
+  lastSeenChangelog: number;
   sex: 'Hombre' | 'Mujer';
   goal: ProfileGoal;
   experience: 'Principiante' | 'Intermedio' | 'Avanzado';
@@ -105,6 +121,7 @@ export type Profile = {
   durationMinutes: number;
   unit: WeightUnit;
   theme: AppTheme;
+  style: AppStyle;
   calorieTarget: number;
   proteinTarget: number;
 };

@@ -99,6 +99,54 @@ export const exerciseMedia: Record<string, MediaAsset> = {
     animation: require('../assets/motion/roman-chair-situp.webp'),
     thumbnail: require('../assets/motion/roman-chair-situp-thumb.webp'),
   },
+  'gripper-hands': {
+    animation: require('../assets/motion/gripper-hands.webp'),
+    thumbnail: require('../assets/motion/gripper-hands-thumb.webp'),
+  },
+  'wrist-curl': {
+    animation: require('../assets/motion/wrist-curl.webp'),
+    thumbnail: require('../assets/motion/wrist-curl-thumb.webp'),
+  },
+  'cable-shrug': {
+    animation: require('../assets/motion/cable-shrug.webp'),
+    thumbnail: require('../assets/motion/cable-shrug-thumb.webp'),
+  },
+  'cable-pull-through': {
+    animation: require('../assets/motion/cable-pull-through.webp'),
+    thumbnail: require('../assets/motion/cable-pull-through-thumb.webp'),
+  },
+  'donkey-calf-raise': {
+    animation: require('../assets/motion/donkey-calf-raise.webp'),
+    thumbnail: require('../assets/motion/donkey-calf-raise-thumb.webp'),
+  },
+  'standing-crunch': {
+    animation: require('../assets/motion/standing-crunch.webp'),
+    thumbnail: require('../assets/motion/standing-crunch-thumb.webp'),
+  },
+  'cable-twist': {
+    animation: require('../assets/motion/cable-twist.webp'),
+    thumbnail: require('../assets/motion/cable-twist-thumb.webp'),
+  },
+  'cable-curl': {
+    animation: require('../assets/motion/cable-curl.webp'),
+    thumbnail: require('../assets/motion/cable-curl-thumb.webp'),
+  },
+  'concentration-curl': {
+    animation: require('../assets/motion/concentration-curl.webp'),
+    thumbnail: require('../assets/motion/concentration-curl-thumb.webp'),
+  },
+  'overhead-triceps-extension': {
+    animation: require('../assets/motion/overhead-triceps-extension.webp'),
+    thumbnail: require('../assets/motion/overhead-triceps-extension-thumb.webp'),
+  },
+  'triceps-kickback': {
+    animation: require('../assets/motion/triceps-kickback.webp'),
+    thumbnail: require('../assets/motion/triceps-kickback-thumb.webp'),
+  },
+  'front-raise': {
+    animation: require('../assets/motion/front-raise.webp'),
+    thumbnail: require('../assets/motion/front-raise-thumb.webp'),
+  },
 };
 
 export const heroPullMale = require('../assets/images/hero-pull.png');

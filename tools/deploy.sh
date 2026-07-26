@@ -31,8 +31,8 @@ pnpm build:apk
 VERSION="$(node -p "require('./app.json').expo.version")"
 SOURCE_APK="$APP_DIR/android/app/build/outputs/apk/release/app-release.apk"
 OFFICIAL_APK="$ROOT/Iron-Kata-OFICIAL-v${VERSION}.apk"
-PHONE_DEST="/sdcard/APK'S - DESARROLLOS/Iron-Kata-OFICIAL-v${VERSION}.apk"
-
+PHONE_DEST="/sdcard/APK'S - DESARROLLOS/Iron-Kata-v${VERSION}.apk"
+#prefiero un nombre estandar
 cp -f "$SOURCE_APK" "$OFFICIAL_APK"
 
 if ! "$AAPT" dump badging "$OFFICIAL_APK" | grep -q "package: name='com.ironkata.app'"; then
