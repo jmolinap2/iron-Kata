@@ -21,11 +21,13 @@ export function HomeScreen() {
   const styles = useStyles();
   const profile = useAppStore(state => state.profile);
   const recommended = useAppStore(selectRecommendedRoutine);
+  const routines = useAppStore(state => state.routines);
   const sessions = useAppStore(state => state.sessions);
   const week = useMemo(() => weekSessions(sessions).slice(0, 3), [sessions]);
   const activeWorkout = useAppStore(state => state.activeWorkout);
   const completeRest = useAppStore(state => state.completeRest);
-  const lastCompleted = sessions.find(item => item.status === 'completed' && !item.isQuick);
+  const routineIds = useMemo(() => new Set(routines.map(item => item.id)), [routines]);
+  const lastCompleted = sessions.find(item => item.status === 'completed' && !item.isQuick && routineIds.has(item.routineId));
   const heroPull = profile.sex === 'Mujer' ? heroPullFemale : heroPullMale;
 
   const openPrimary = async () => {

@@ -43,6 +43,15 @@ fi
 echo "==> Instalando Iron Kata $VERSION en $DEVICE"
 "$ADB" -s "$DEVICE" install --streaming -r "$OFFICIAL_APK"
 
+PHONE_DIR="$(dirname "$PHONE_DEST")"
+PHONE_BACKUP_DIR="$PHONE_DIR/respaldo"
+if "$ADB" -s "$DEVICE" shell test -f "$PHONE_DEST"; then
+  BACKUP_NAME="$(basename "$PHONE_DEST" .apk)-$(date +%Y%m%d-%H%M%S).apk"
+  echo "==> Respaldando la APK anterior del teléfono: $BACKUP_NAME"
+  "$ADB" -s "$DEVICE" shell mkdir -p "$PHONE_BACKUP_DIR"
+  "$ADB" -s "$DEVICE" shell mv "$PHONE_DEST" "$PHONE_BACKUP_DIR/$BACKUP_NAME"
+fi
+
 echo "==> Copiando la APK oficial al teléfono"
 "$ADB" -s "$DEVICE" push "$OFFICIAL_APK" "$PHONE_DEST"
 

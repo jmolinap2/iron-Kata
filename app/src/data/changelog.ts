@@ -44,6 +44,18 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: 'Nuevo estilo visual: Vidrio',
     summary: 'Un tercer estilo, ahora con vidrio esmerilado real (no solo colores translúcidos): tarjetas, la barra inferior y las ayudas contextuales desenfocan de verdad lo que hay detrás, con destellos de color ambientales. Elegilo desde Perfil → Estilo visual.',
   },
+  {
+    version: 6,
+    date: '29 de julio',
+    title: 'Rutinas y registro mucho más flexibles',
+    summary: 'Ahora podés ordenar, editar o eliminar rutinas con mayor claridad, buscar ejercicios por grupo muscular y configurar sus objetivos con controles más cómodos. El registro pasado también puede empezar vacío: agregás solo los ejercicios y series que realmente hiciste. Las animaciones suman un velo de luz sutil y dinámico.',
+  },
+  {
+    version: 7,
+    date: '29 de julio',
+    title: '40 ejercicios nuevos de máquinas y poleas',
+    summary: 'El catálogo creció con 40 ejercicios adicionales del manifiesto de máquinas y poleas: dominadas asistidas, variantes de press, remos, curls, extensiones, trabajo de hombros, pecho, espalda, piernas y abdomen. Todos incluyen animación y miniatura propias.',
+  },
 ];
 
 export const LATEST_CHANGELOG_VERSION = CHANGELOG.reduce((max, item) => Math.max(max, item.version), 0);

@@ -34,7 +34,7 @@ export function SessionDetailScreen() {
 
   return <Screen><AppScrollView contentStyle={{ paddingTop: spacing.md }}>
     <View style={styles.topbar}><Pressable onPress={() => navigation.goBack()} style={styles.back}><Ionicons name="arrow-back" size={25} color={colors.text}/></Pressable><View><Text style={styles.title}>{session.routineName}</Text><Text style={styles.subtitle}>{formatShortDate(session.completedAt ?? session.startedAt)}</Text></View></View>
-    <Card style={styles.metrics}><View><Text style={styles.metricValue}>{grouped.length}</Text><Text style={styles.metricLabel}>ejercicios</Text></View><View><Text style={styles.metricValue}>{session.sets.length}</Text><Text style={styles.metricLabel}>series</Text></View><View><Text style={styles.metricValue}>{session.isQuick ? 'Rápido' : 'Secuencia'}</Text><Text style={styles.metricLabel}>tipo</Text></View></Card>
+    <Card style={styles.metrics}><View><Text style={styles.metricValue}>{grouped.length}</Text><Text style={styles.metricLabel}>ejercicios</Text></View><View><Text style={styles.metricValue}>{session.sets.length}</Text><Text style={styles.metricLabel}>series</Text></View><View><Text style={styles.metricValue}>{session.routineId === 'manual' ? 'Libre' : session.isQuick ? 'Rápido' : 'Secuencia'}</Text><Text style={styles.metricLabel}>tipo</Text></View></Card>
     {grouped.length ? grouped.map(([name, sets]) => <Card key={name}><Text style={styles.exerciseName}>{name}</Text>{sets.map(item => (
       <View key={item.id} style={styles.setRow}>
         <View style={styles.number}><Text style={styles.numberText}>{item.setNumber}</Text></View>

@@ -21,7 +21,7 @@ export function ProgressScreen() {
   const sessions = useAppStore(state => state.sessions);
   const week = useMemo(() => weekSessions(sessions), [sessions]);
   const previousWeek = useMemo(() => previousWeekSessions(sessions), [sessions]);
-  const routines = useAppStore(state => state.routines);
+  const exercises = useAppStore(state => state.exercises);
   const weights = useAppStore(state => state.weights);
   const records = useAppStore(state => state.records);
   const addBodyWeight = useAppStore(state => state.addBodyWeight);
@@ -33,20 +33,20 @@ export function ProgressScreen() {
     const map = new Map<string, number>();
     for (const session of week) {
       for (const set of session.sets) {
-        const planned = routines.flatMap(routine => routine.exercises).find(item => item.id === set.exerciseId);
-        const muscle = planned?.muscle ?? 'Otros';
+        const exercise = exercises.find(item => item.id === set.exerciseId);
+        const muscle = exercise?.muscle ?? 'Otros';
         map.set(muscle, (map.get(muscle) ?? 0) + 1);
       }
     }
     return [...map.entries()].sort((a, b) => b[1] - a[1]);
-  }, [routines, week]);
+  }, [exercises, week]);
   const maxVolume = Math.max(1, ...volumes.map(([, value]) => value));
 
   const strengthProgress = useMemo(() => {
-    const muscleOf = (exerciseId: string) => routines.flatMap(routine => routine.exercises).find(item => item.id === exerciseId)?.muscle ?? 'Otros';
+    const muscleOf = (exerciseId: string) => exercises.find(item => item.id === exerciseId)?.muscle ?? 'Otros';
     const toMuscleSets = (source: typeof week) => source.flatMap(session => session.sets.map(set => ({ muscle: muscleOf(set.exerciseId), weight: set.weight, reps: set.reps })));
     return muscleProgress(toMuscleSets(week), toMuscleSets(previousWeek));
-  }, [routines, week, previousWeek]);
+  }, [exercises, week, previousWeek]);
 
   const saveWeight = async () => {
     const value = Number(weightInput.replace(',', '.'));

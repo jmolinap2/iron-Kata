@@ -486,6 +486,15 @@ export async function replaceRoutine(routine: Routine) {
   });
 }
 
+export async function saveRoutineOrder(routineIds: string[]) {
+  const db = await getDatabase();
+  await db.withTransactionAsync(async () => {
+    for (const [index, routineId] of routineIds.entries()) {
+      await db.runAsync('UPDATE routines SET order_index=? WHERE id=?', index, routineId);
+    }
+  });
+}
+
 export async function deleteRoutine(routineId: string) {
   const db = await getDatabase();
   await db.withTransactionAsync(async () => {

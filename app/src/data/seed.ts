@@ -1,4 +1,5 @@
 import type { Exercise, Profile, Routine } from '../types';
+import { MACHINE_EXERCISES } from './machineExercises';
 
 export const DEFAULT_PROFILE: Profile = {
   name: '',
@@ -269,6 +270,7 @@ export const SEED_EXERCISES: Exercise[] = [
     mediaKey: 'front-raise',
     instructions: ['Sostén el agarre frente a los muslos.', 'Eleva el brazo al frente hasta la altura del hombro.', 'Baja de forma controlada sin usar impulso.'],
   },
+  ...MACHINE_EXERCISES,
 ];
 
 const exercise = (id: string) => {

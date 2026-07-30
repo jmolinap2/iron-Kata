@@ -17,6 +17,11 @@ const topics: { icon: keyof typeof Ionicons.glyphMap; title: string; body: strin
     body: 'Si un día no llegás a la rutina completa, "Entrenamiento rápido" toma los 3 primeros ejercicios de la que elijas y los registra igual de bien — queda guardado en tu historial como cualquier otro entrenamiento.',
   },
   {
+    icon: 'swap-vertical-outline',
+    title: 'Tu secuencia se puede cambiar',
+    body: 'Las rutinas iniciales son un punto de partida. Desde Entreno podés mantener pulsada una tarjeta para cambiar su posición, editar sus ejercicios u objetivos, crear otras nuevas o eliminar las que no uses. Tus entrenamientos ya guardados no se borran al cambiar la secuencia.',
+  },
+  {
     icon: 'trophy-outline',
     title: 'Cómo sabemos que mejoraste',
     body: 'Cada vez que cargás una serie, calculamos cuánto podrías levantar en una sola repetición con ese ritmo (por ejemplo: 60 kg × 10 reps te da un estimado bastante más alto que 60 kg × 3). Si ese número supera tu mejor marca anterior en ese ejercicio, queda guardado como récord automáticamente — no tenés que hacer nada.',
@@ -34,7 +39,7 @@ const topics: { icon: keyof typeof Ionicons.glyphMap; title: string; body: strin
   {
     icon: 'create-outline',
     title: '¿Te equivocaste al cargar algo?',
-    body: 'Todo lo que registrás se puede corregir después. Entrá al detalle de una sesión para editar el peso o las repeticiones de una serie, o tocá el basurero junto a una comida o un peso corporal para borrarlo. ¿Te olvidaste de cargar el entrenamiento de ayer? Desde Progreso, "Registrar pasado" te deja añadirlo con la fecha correcta.',
+    body: 'Todo lo que registrás se puede corregir después. Entrá al detalle de una sesión para editar el peso o las repeticiones de una serie. ¿Te olvidaste de cargar el entrenamiento de ayer? Desde Progreso, "Registrar pasado" permite agregar solamente los ejercicios realizados o cargar una rutina como base.',
   },
   {
     icon: 'archive-outline',

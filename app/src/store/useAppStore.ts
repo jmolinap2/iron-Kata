@@ -19,6 +19,7 @@ import {
   savePerformedSet,
   savePersonalRecord,
   saveProfile,
+  saveRoutineOrder,
   updatePerformedSet as updatePerformedSetRow,
 } from '../data/database';
 import type {
@@ -61,7 +62,7 @@ type AppStore = AppSnapshot & {
   previousExercise: () => void;
   stopRest: () => void;
   finishWorkout: () => Promise<WorkoutSummary>;
-  logPastWorkout: (routineId: string, daysAgo: number, entries: PastSetEntry[]) => Promise<void>;
+  logPastWorkout: (routineId: string | null, daysAgo: number, entries: PastSetEntry[]) => Promise<void>;
   deleteSession: (id: string) => Promise<void>;
   updateSet: (id: string, weight: number, reps: number) => Promise<void>;
   deleteSet: (id: string) => Promise<void>;
@@ -72,6 +73,7 @@ type AppStore = AppSnapshot & {
   addFood: (name: string, calories: number, protein: number) => Promise<void>;
   deleteFoodEntry: (id: string) => Promise<void>;
   saveRoutine: (routine: Routine) => Promise<void>;
+  reorderRoutines: (routineIds: string[]) => Promise<void>;
   deleteRoutine: (id: string) => Promise<void>;
   createBackup: () => Promise<string>;
   restoreBackup: (raw: string) => Promise<void>;
@@ -234,13 +236,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   logPastWorkout: async (routineId, daysAgo, entries) => {
-    const routine = get().routines.find(item => item.id === routineId);
-    if (!routine || !entries.length) return;
+    const routine = routineId ? get().routines.find(item => item.id === routineId) : null;
+    if (routineId && !routine || !entries.length) return;
     const date = new Date();
     date.setDate(date.getDate() - daysAgo);
     const completedAt = date.toISOString();
     const session: WorkoutSession = {
-      id: makeId('session'), routineId: routine.id, routineName: routine.name,
+      id: makeId('session'), routineId: routine?.id ?? 'manual', routineName: routine?.name ?? 'Entrenamiento libre',
       startedAt: completedAt, completedAt, status: 'completed', isQuick: false, sets: [],
     };
     await createSession({ ...session, completedAt: null, status: 'active' });
@@ -325,10 +327,25 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set({ ...snapshot });
   },
 
+  reorderRoutines: async routineIds => {
+    await saveRoutineOrder(routineIds);
+    const order = new Map(routineIds.map((id, index) => [id, index]));
+    set({
+      routines: [...get().routines]
+        .map(routine => ({ ...routine, orderIndex: order.get(routine.id) ?? routine.orderIndex }))
+        .sort((a, b) => a.orderIndex - b.orderIndex),
+    });
+  },
+
   deleteRoutine: async id => {
     await deleteRoutineRow(id);
     const snapshot = await loadSnapshot();
-    set({ ...snapshot });
+    const routineIds = snapshot.routines.map(routine => routine.id);
+    await saveRoutineOrder(routineIds);
+    set({
+      ...snapshot,
+      routines: snapshot.routines.map((routine, index) => ({ ...routine, orderIndex: index })),
+    });
   },
 
   createBackup: exportBackup,

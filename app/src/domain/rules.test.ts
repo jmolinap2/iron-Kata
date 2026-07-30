@@ -35,6 +35,10 @@ describe('secuencia de entrenamiento', () => {
   it('un entrenamiento rápido no altera la secuencia principal', () => {
     expect(nextRoutine(routines, [session('pierna', true), session('espalda')])?.id).toBe('pierna');
   });
+
+  it('un entrenamiento libre no reinicia la secuencia principal', () => {
+    expect(nextRoutine(routines, [session('manual'), session('espalda')])?.id).toBe('pierna');
+  });
 });
 
 describe('récords de fuerza', () => {

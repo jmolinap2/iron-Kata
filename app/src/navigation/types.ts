@@ -7,7 +7,7 @@ export type RootStackParamList = {
   QuickWorkout: undefined;
   Backup: undefined;
   SessionDetail: { sessionId: string };
-  LogPastWorkout: { routineId?: string } | undefined;
+  LogPastWorkout: { routineId?: string; daysAgo?: number } | undefined;
   HowItWorks: undefined;
 };
 

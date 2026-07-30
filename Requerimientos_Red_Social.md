@@ -30,9 +30,10 @@ Permitir que el usuario comparta su entrenamiento y progreso físico con otras p
 La app actual es 100 % local (SQLite, sin servidor, sin login — sección 9 del documento base). Esta función rompe esa premisa:
 
 - Backend con autenticación de usuarios (cuentas, sesión).
-- Almacenamiento en la nube para imágenes y video (con compresión/transcodificación).
-- Moderación de contenido (reportes, filtro básico de abuso).
+- Almacenamiento en la nube para imágenes y video. **Corrección**: la compresión y la miniatura las hace **la app**, no el servidor — el hosting elegido es compartido y no permite ffmpeg. El servidor valida y rechaza lo que no cumpla.
+- Moderación de contenido (reportes, filtro básico de abuso). **No es opcional**: Google Play exige, para apps con contenido de usuarios, reportar y bloquear dentro de la app como funciones separadas y claramente etiquetadas, más moderación activa. Sin eso, la app se rechaza o se baja de la tienda.
 - Política de privacidad actualizada — deja de ser "los datos nunca salen del teléfono" ([BackupScreen.tsx](app/src/screens/BackupScreen.tsx) hoy lo promete así).
+- **Cumplimiento de la LOPDP (Ecuador)**: las fotos de progreso corporal y el historial de entrenamiento son datos de salud, o sea datos sensibles, con consentimiento explícito y separado, derechos ARCO y notificación de brechas en 5 días hábiles.
 - Costo de hosting recurrente (hoy la app no tiene ninguno).
 
 ---
@@ -47,12 +48,28 @@ Se mantiene la exclusión del documento base salvo que se indique lo contrario:
 
 ---
 
-## 5. Preguntas abiertas
+## 5. Preguntas abiertas — resueltas
 
-- ¿Perfil público para cualquiera o solo visible para seguidores aceptados?
-- ¿Los estados se borran solos a las 24 h o quedan guardados?
-- ¿Cómo se modera contenido sensible (fotos corporales) — qué se prohíbe, quién revisa?
-- ¿La cuenta/login se aprovecha para agregar sincronización en la nube del resto de los datos (rutinas, sesiones, récords), o queda aislada solo para lo social?
+Las cuatro quedaron respondidas al diseñar el backend. El detalle vive en `C:\Repos\IronKataSocial\documentacion\`.
+
+| Pregunta | Respuesta |
+|---|---|
+| ¿Perfil público para cualquiera o solo para seguidores aceptados? | **Ambas, elegibles por el usuario.** La cuenta puede ser pública o privada, y además cada publicación tiene su propia visibilidad. **Por defecto todo nace visible solo para seguidores**; "público" es una acción deliberada. |
+| ¿Los estados se borran solos a las 24 h? | **Sí**, expiran solos y su archivo se borra de verdad del almacenamiento. El autor puede borrarlos antes y ve quién los vio. |
+| ¿Cómo se modera el contenido sensible? | Reportes con catálogo de motivos, **auto-ocultación al llegar a 3 reportantes distintos**, lista de términos bloqueados, y cola de revisión humana en el panel con auditoría de toda acción. Revisa el administrador del sistema. |
+| ¿La cuenta se aprovecha para sincronizar el resto de los datos? | **No en la v1** — decisión tomada. Queda documentada como **fase 2**, con el modelo diseñado para que quepa después sin rehacer nada. El obstáculo real no es técnico sino de capacidad: las series de entrenamiento son la tabla que más filas genera, y el plan de hosting da 1 GB. |
+
+---
+
+## 6. Documentación completa
+
+El alcance detallado —funcional y no funcional— vive en el repo del backend:
+
+- [01 — Alcance funcional](../IronKataSocial/documentacion/01_Alcance_Funcional.md)
+- [02 — Arquitectura de datos y API](../IronKataSocial/documentacion/02_Arquitectura_Datos_y_API.md)
+- [03 — Seguridad, privacidad y legal](../IronKataSocial/documentacion/03_Seguridad_Privacidad_y_Legal.md)
+- [04 — Operación, despliegue y capacidad](../IronKataSocial/documentacion/04_Operacion_Despliegue_y_Capacidad.md)
+- [05 — Cambios en la app Iron Kata](../IronKataSocial/documentacion/05_Cambios_en_la_App_IronKata.md) ← lo que hay que construir **en este repo**
 
 ---
 

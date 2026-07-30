@@ -6,6 +6,7 @@ import sharp from 'sharp';
 const toolDir = path.dirname(fileURLToPath(import.meta.url));
 const appDir = path.resolve(toolDir, '..');
 const sourceDir = path.join(appDir, 'assets', 'exercise_motion', 'source', 'ejercicios_organizados');
+const machineDatasetDir = path.join(appDir, 'assets', 'exercise_motion', 'source', 'exercises-machine-men-first-200-512', 'videos');
 const outputDir = path.join(appDir, 'assets', 'motion');
 
 // Cada entrada convierte un gif animado (estilo diagrama anatómico,
@@ -44,7 +45,7 @@ const clips = [
   // barbell-row: sin gif de remo con barra en la carpeta; se usa remo bajo en
   // polea y el nombre en seed.ts refleja eso. Cambiar si llega el de barra.
   { file: 'espalda/remo-bajo-sentado-polea.gif', id: 'barbell-row' },
-  // Dataset de 200 ejercicios de máquina/cable (exercises-machine-men-first-200-512).
+  // Selección inicial del dataset de 200 ejercicios de máquina/cable.
   { file: 'antebrazos/prensa-de-mano.gif', id: 'gripper-hands' },
   { file: 'antebrazos/curl-muneca-polea.gif', id: 'wrist-curl' },
   { file: 'trapecios/encogimiento-polea.gif', id: 'cable-shrug' },
@@ -59,10 +60,27 @@ const clips = [
   { file: 'hombros/elevacion-frontal-polea.gif', id: 'front-raise' },
 ];
 
+const additionalMachineIds = [
+  '0007', '0009', '0015', '0017', '1431', '1432', '0019', '2364', '0148', '0149',
+  '3235', '0150', '0151', '1630', '1631', '0152', '0153', '0154', '0155', '0868',
+  '0157', '0158', '1260', '1261', '0159', '1632', '0160', '0161', '0162', '0164',
+  '0165', '1722', '0167', '0168', '0169', '1318', '0171', '0170', '0172', '0173',
+];
+const manifest = await fs.readFile(path.join(machineDatasetDir, '..', 'data', 'manifest-first-200.csv'), 'utf8');
+const manifestRows = new Map(manifest.trim().split(/\r?\n/).slice(1).map(line => {
+  const columns = line.split(',');
+  return [columns[1], columns[7]];
+}));
+const additionalClips = additionalMachineIds.map(id => {
+  const file = manifestRows.get(id);
+  if (!file) throw new Error(`No se encontró el GIF del ejercicio ${id} en el manifiesto.`);
+  return { file, id: `machine-${id}`, sourceDir: machineDatasetDir };
+});
+
 await fs.mkdir(outputDir, { recursive: true });
 
-for (const clip of clips) {
-  const sourceFile = path.join(sourceDir, clip.file);
+for (const clip of [...clips, ...additionalClips]) {
+  const sourceFile = path.join(clip.sourceDir ?? sourceDir, clip.file);
   const metadata = await sharp(sourceFile, { animated: true }).metadata();
   if (!metadata.width || !metadata.pageHeight || !metadata.pages) {
     throw new Error(`No se pudo leer ${sourceFile}`);
@@ -92,4 +110,4 @@ for (const clip of clips) {
     .toFile(path.join(outputDir, `${clip.id}-thumb.webp`));
 }
 
-console.log(`Generadas ${clips.length} animaciones y miniaturas en ${outputDir}`);
+console.log(`Generadas ${clips.length + additionalClips.length} animaciones y miniaturas en ${outputDir}`);

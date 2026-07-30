@@ -3,7 +3,8 @@ import type { PerformedSet, Routine, WorkoutSession } from '../types';
 export function nextRoutine(routines: Routine[], sessions: WorkoutSession[]): Routine | null {
   const sequence = routines.filter(item => item.active).sort((a, b) => a.orderIndex - b.orderIndex);
   if (!sequence.length) return null;
-  const lastCompleted = sessions.find(item => item.status === 'completed' && !item.isQuick);
+  const routineIds = new Set(sequence.map(item => item.id));
+  const lastCompleted = sessions.find(item => item.status === 'completed' && !item.isQuick && routineIds.has(item.routineId));
   if (!lastCompleted) return sequence[0];
   const index = sequence.findIndex(item => item.id === lastCompleted.routineId);
   if (index < 0) return sequence[0];

@@ -1,4 +1,5 @@
 import type { ImageSourcePropType } from 'react-native';
+import { machineExerciseMedia } from './data/machineMedia';
 
 type MediaAsset = { animation: ImageSourcePropType; thumbnail: ImageSourcePropType };
 
@@ -147,6 +148,7 @@ export const exerciseMedia: Record<string, MediaAsset> = {
     animation: require('../assets/motion/front-raise.webp'),
     thumbnail: require('../assets/motion/front-raise-thumb.webp'),
   },
+  ...machineExerciseMedia,
 };
 
 export const heroPullMale = require('../assets/images/hero-pull.png');
