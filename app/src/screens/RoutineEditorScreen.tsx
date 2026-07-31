@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Animated, LayoutAnimation, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Animated, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
+import Reanimated, { Easing, LinearTransition } from 'react-native-reanimated';
 
 import type { RootStackParamList } from '../navigation/types';
 import { ActionButton, AppScrollView, Card, Screen, SectionTitle } from '../components/ui';
@@ -13,6 +14,7 @@ import type { Exercise, MuscleGroup, PlannedExercise, Routine } from '../types';
 import { createThemedStyleSheet, radius, spacing, useTheme } from '../theme';
 
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
+const REORDER_TRANSITION = LinearTransition.duration(300).easing(Easing.bezier(0.2, 0.8, 0.2, 1));
 
 export function RoutineEditorScreen() {
   const navigation = useNavigation();
@@ -110,7 +112,6 @@ export function RoutineEditorScreen() {
       }
 
       if (toIndex === fromIndex) return value;
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       dragLayoutPending.current = true;
       const exercises = [...value.exercises];
       const [moved] = exercises.splice(fromIndex, 1);
@@ -268,8 +269,9 @@ export function RoutineEditorScreen() {
             ) : draft.exercises.map((item, index) => {
               const expanded = expandedId === item.id;
               return (
-                <Animated.View
+                <Reanimated.View
                   key={item.id}
+                  layout={draggingId === item.id ? undefined : REORDER_TRANSITION}
                   onLayout={event => {
                     const nextLayout = {
                       y: event.nativeEvent.layout.y,
@@ -281,61 +283,64 @@ export function RoutineEditorScreen() {
                       dragOffset.setValue(dragVisualTop.current - nextLayout.y);
                     }
                   }}
-                  style={[
-                    draggingId === item.id && styles.draggingCard,
-                    draggingId === item.id && { transform: [{ translateY: dragOffset }, { scale: 1.015 }] },
-                  ]}
                 >
-                  <Card style={[styles.exerciseCard, expanded && styles.exerciseCardExpanded]}>
-                    <LongPressDragArea
-                      accessibilityLabel={`${item.name}. Toca para configurar o mantén pulsado y arrastra para cambiar su posición.`}
-                      style={styles.exerciseHeader}
-                      onTap={() => setExpandedId(expanded ? null : item.id)}
-                      onDragStart={() => handleDragStart(item.id)}
-                      onDragMove={offset => handleDragMove(item.id, offset)}
-                      onDragEnd={(startPointerY, pointerY) => handleDragEnd(item.id, startPointerY, pointerY)}
-                      onDragCancel={handleDragCancel}
-                    >
-                      <View style={[styles.dragHandle, draggingId === item.id && styles.dragHandleActive]}>
-                        <View style={styles.position}><Text style={styles.positionText}>{index + 1}</Text></View>
-                        <Ionicons name="reorder-three-outline" size={20} color={draggingId === item.id ? colors.primary : colors.textDim} />
-                      </View>
-                      <View style={styles.exerciseMain}>
-                        <ExerciseMedia mediaKey={item.mediaKey} style={styles.thumb} />
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.exerciseName}>{item.name}</Text>
-                          <Text style={styles.exerciseSummary}>{item.muscle} · {item.sets}×{item.repMin}–{item.repMax} · {item.restSeconds} s</Text>
+                  <Animated.View
+                    style={[
+                      draggingId === item.id && styles.draggingCard,
+                      draggingId === item.id && { transform: [{ translateY: dragOffset }, { scale: 1.015 }] },
+                    ]}
+                  >
+                    <Card style={[styles.exerciseCard, expanded && styles.exerciseCardExpanded]}>
+                      <LongPressDragArea
+                        accessibilityLabel={`${item.name}. Toca para configurar o mantén pulsado y arrastra para cambiar su posición.`}
+                        style={styles.exerciseHeader}
+                        onTap={() => setExpandedId(expanded ? null : item.id)}
+                        onDragStart={() => handleDragStart(item.id)}
+                        onDragMove={offset => handleDragMove(item.id, offset)}
+                        onDragEnd={(startPointerY, pointerY) => handleDragEnd(item.id, startPointerY, pointerY)}
+                        onDragCancel={handleDragCancel}
+                      >
+                        <View style={[styles.dragHandle, draggingId === item.id && styles.dragHandleActive]}>
+                          <View style={styles.position}><Text style={styles.positionText}>{index + 1}</Text></View>
+                          <Ionicons name="reorder-three-outline" size={20} color={draggingId === item.id ? colors.primary : colors.textDim} />
                         </View>
-                        <Ionicons name={expanded ? 'chevron-up' : 'options-outline'} size={22} color={expanded ? colors.primary : colors.textDim} />
-                      </View>
-                    </LongPressDragArea>
+                        <View style={styles.exerciseMain}>
+                          <ExerciseMedia mediaKey={item.mediaKey} style={styles.thumb} />
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.exerciseName}>{item.name}</Text>
+                            <Text style={styles.exerciseSummary}>{item.muscle} · {item.sets}×{item.repMin}–{item.repMax} · {item.restSeconds} s</Text>
+                          </View>
+                          <Ionicons name={expanded ? 'chevron-up' : 'options-outline'} size={22} color={expanded ? colors.primary : colors.textDim} />
+                        </View>
+                      </LongPressDragArea>
 
-                  {expanded ? (
-                    <View style={styles.exerciseDetails}>
-                      <View style={styles.configGrid}>
-                        <NumberControl label="Series" value={item.sets} min={1} max={8} step={1} onChange={sets => updateExercise(index, { sets })} />
-                        <NumberControl
-                          label="Repeticiones mín."
-                          value={item.repMin}
-                          min={1}
-                          max={30}
-                          step={1}
-                          onChange={repMin => updateExercise(index, { repMin, repMax: Math.max(repMin, item.repMax) })}
-                        />
-                        <NumberControl label="Repeticiones máx." value={item.repMax} min={item.repMin} max={40} step={1} onChange={repMax => updateExercise(index, { repMax })} />
-                        <NumberControl label="Descanso (s)" value={item.restSeconds} min={15} max={600} step={15} onChange={restSeconds => updateExercise(index, { restSeconds })} />
-                      </View>
+                    {expanded ? (
+                      <View style={styles.exerciseDetails}>
+                        <View style={styles.configGrid}>
+                          <NumberControl label="Series" value={item.sets} min={1} max={8} step={1} onChange={sets => updateExercise(index, { sets })} />
+                          <NumberControl
+                            label="Repeticiones mín."
+                            value={item.repMin}
+                            min={1}
+                            max={30}
+                            step={1}
+                            onChange={repMin => updateExercise(index, { repMin, repMax: Math.max(repMin, item.repMax) })}
+                          />
+                          <NumberControl label="Repeticiones máx." value={item.repMax} min={item.repMin} max={40} step={1} onChange={repMax => updateExercise(index, { repMax })} />
+                          <NumberControl label="Descanso (s)" value={item.restSeconds} min={15} max={600} step={15} onChange={restSeconds => updateExercise(index, { restSeconds })} />
+                        </View>
 
-                      <View style={styles.exerciseActions}>
-                        <Pressable style={styles.removeButton} onPress={() => remove(index)}>
-                          <Ionicons name="trash-outline" size={19} color={colors.danger} />
-                          <Text style={styles.removeText}>Quitar</Text>
-                        </Pressable>
+                        <View style={styles.exerciseActions}>
+                          <Pressable style={styles.removeButton} onPress={() => remove(index)}>
+                            <Ionicons name="trash-outline" size={19} color={colors.danger} />
+                            <Text style={styles.removeText}>Quitar</Text>
+                          </Pressable>
+                        </View>
                       </View>
-                    </View>
-                  ) : null}
-                  </Card>
-                </Animated.View>
+                    ) : null}
+                    </Card>
+                  </Animated.View>
+                </Reanimated.View>
               );
             })}
 

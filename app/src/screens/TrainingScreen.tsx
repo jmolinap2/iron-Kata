@@ -166,8 +166,9 @@ export function TrainingScreen() {
         ) : null}
 
         {displayedRoutines.map((routine, index) => (
-          <Animated.View
+          <Reanimated.View
             key={routine.id}
+            layout={draggingId === routine.id ? undefined : REORDER_TRANSITION}
             onLayout={event => {
               const nextLayout = {
                 y: event.nativeEvent.layout.y,
@@ -179,64 +180,67 @@ export function TrainingScreen() {
                 dragOffset.setValue(dragVisualTop.current - nextLayout.y);
               }
             }}
-            style={[
-              draggingId === routine.id && styles.draggingCard,
-              draggingId === routine.id && { transform: [{ translateY: dragOffset }, { scale: 1.015 }] },
-            ]}
           >
-            <Card style={[styles.routineCard, draggingId === routine.id && styles.routineCardDragging]} delay={index * 45}>
-              <LongPressDragArea
-                accessibilityLabel={`${routine.name}. Toca para abrir o mantén pulsado y arrastra para cambiar su posición.`}
-                dragDisabled={moving}
-                style={styles.routineTop}
-                onTap={() => {
-                  routine.isRest
-                    ? navigation.navigate('RoutineEditor', { routineId: routine.id })
-                    : navigation.navigate('RoutineDetail', { routineId: routine.id });
-                }}
-                onDragStart={() => handleDragStart(routine.id)}
-                onDragMove={offset => handleDragMove(routine.id, offset)}
-                onDragEnd={(startPointerY, pointerY) => {
-                  void handleDragEnd(routine.id, startPointerY, pointerY);
-                }}
-                onDragCancel={handleDragCancel}
-              >
-                <View style={[styles.order, routine.isRest && styles.orderRest]}>
-                  <Text style={styles.orderText}>{index + 1}</Text>
-                </View>
-                {routine.exercises[0] ? (
-                  <ExerciseMedia mediaKey={routine.exercises[0].mediaKey} style={styles.thumb} />
-                ) : (
-                  <View style={[styles.thumb, styles.restThumb]}><Ionicons name="moon" size={28} color={colors.textDim} /></View>
-                )}
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.routineName}>{routine.name}</Text>
-                  <Text style={styles.meta}>
-                    {routine.isRest
-                      ? 'Recuperación programada'
-                      : `${routine.exercises.length} ejercicios · ${routine.exercises.reduce((sum, item) => sum + item.sets, 0)} series`}
-                  </Text>
-                  {!routine.isRest && routine.muscles.length ? (
-                    <Text style={styles.muscles} numberOfLines={1}>{routine.muscles.join(' · ')}</Text>
-                  ) : null}
-                </View>
-                <View style={[styles.dragAffordance, draggingId === routine.id && styles.dragAffordanceActive]}>
-                  <Ionicons name="reorder-three" size={24} color={draggingId === routine.id ? colors.primary : colors.textDim} />
-                </View>
-              </LongPressDragArea>
+            <Animated.View
+              style={[
+                draggingId === routine.id && styles.draggingCard,
+                draggingId === routine.id && { transform: [{ translateY: dragOffset }, { scale: 1.015 }] },
+              ]}
+            >
+              <Card style={[styles.routineCard, draggingId === routine.id && styles.routineCardDragging]} delay={index * 45}>
+                <LongPressDragArea
+                  accessibilityLabel={`${routine.name}. Toca para abrir o mantén pulsado y arrastra para cambiar su posición.`}
+                  dragDisabled={moving}
+                  style={styles.routineTop}
+                  onTap={() => {
+                    routine.isRest
+                      ? navigation.navigate('RoutineEditor', { routineId: routine.id })
+                      : navigation.navigate('RoutineDetail', { routineId: routine.id });
+                  }}
+                  onDragStart={() => handleDragStart(routine.id)}
+                  onDragMove={offset => handleDragMove(routine.id, offset)}
+                  onDragEnd={(startPointerY, pointerY) => {
+                    void handleDragEnd(routine.id, startPointerY, pointerY);
+                  }}
+                  onDragCancel={handleDragCancel}
+                >
+                  <View style={[styles.order, routine.isRest && styles.orderRest]}>
+                    <Text style={styles.orderText}>{index + 1}</Text>
+                  </View>
+                  {routine.exercises[0] ? (
+                    <ExerciseMedia mediaKey={routine.exercises[0].mediaKey} style={styles.thumb} />
+                  ) : (
+                    <View style={[styles.thumb, styles.restThumb]}><Ionicons name="moon" size={28} color={colors.textDim} /></View>
+                  )}
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.routineName}>{routine.name}</Text>
+                    <Text style={styles.meta}>
+                      {routine.isRest
+                        ? 'Recuperación programada'
+                        : `${routine.exercises.length} ejercicios · ${routine.exercises.reduce((sum, item) => sum + item.sets, 0)} series`}
+                    </Text>
+                    {!routine.isRest && routine.muscles.length ? (
+                      <Text style={styles.muscles} numberOfLines={1}>{routine.muscles.join(' · ')}</Text>
+                    ) : null}
+                  </View>
+                  <View style={[styles.dragAffordance, draggingId === routine.id && styles.dragAffordanceActive]}>
+                    <Ionicons name="reorder-three" size={24} color={draggingId === routine.id ? colors.primary : colors.textDim} />
+                  </View>
+                </LongPressDragArea>
 
-              <View style={styles.cardActions}>
-                <Pressable style={styles.cardAction} onPress={() => navigation.navigate('RoutineEditor', { routineId: routine.id })}>
-                  <Ionicons name="create-outline" size={17} color={colors.primary} />
-                  <Text style={styles.editText}>Editar</Text>
-                </Pressable>
-                <Pressable style={styles.cardAction} onPress={() => confirmDelete(routine)}>
-                  <Ionicons name="trash-outline" size={17} color={colors.danger} />
-                  <Text style={styles.deleteText}>Eliminar</Text>
-                </Pressable>
-              </View>
-            </Card>
-          </Animated.View>
+                <View style={styles.cardActions}>
+                  <Pressable style={styles.cardAction} onPress={() => navigation.navigate('RoutineEditor', { routineId: routine.id })}>
+                    <Ionicons name="create-outline" size={17} color={colors.primary} />
+                    <Text style={styles.editText}>Editar</Text>
+                  </Pressable>
+                  <Pressable style={styles.cardAction} onPress={() => confirmDelete(routine)}>
+                    <Ionicons name="trash-outline" size={17} color={colors.danger} />
+                    <Text style={styles.deleteText}>Eliminar</Text>
+                  </Pressable>
+                </View>
+              </Card>
+            </Animated.View>
+          </Reanimated.View>
         ))}
       </AppScrollView>
     </Screen>
